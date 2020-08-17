@@ -6,7 +6,7 @@ import numpy as np
 import copy
 
 
-def plot_line(x_data, y_data, save_path, x_orient='vertical'):
+def plot_line(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
     if x_orient != 'vertical' and x_orient != 'horizon':
         print('plot_figure x_orient error!')
         exit(1)
@@ -32,11 +32,11 @@ def plot_line(x_data, y_data, save_path, x_orient='vertical'):
     # 设置字体和大小
     plt.rc('font', family='Times New Roman', size=17)
     # 设置x轴的标签
-    plt.xlabel('xlabel')
+    plt.xlabel(x_label)
     # 设置x轴的范围
     # plt.xlim([0, 5])
     # 设置y轴的标签
-    plt.ylabel('ylabel')
+    plt.ylabel(y_label)
     # 设置y轴的范围
     # plt.ylim([-5, 25])
     for _ in range(y_number):
@@ -54,7 +54,7 @@ def plot_line(x_data, y_data, save_path, x_orient='vertical'):
     plt.show()
 
 
-def plot_bar(x_label, y_data, save_path, x_orient='vertical'):
+def plot_bar(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
     if x_orient != 'vertical' and x_orient != 'horizon':
         print('plot_figure x_orient error!')
         exit(1)
@@ -62,8 +62,8 @@ def plot_bar(x_label, y_data, save_path, x_orient='vertical'):
         y_data = list(map(list, zip(*y_data)))
     x_number = len(y_data[0])
     y_number = len(y_data)
-    if len(x_label) != x_number:
-        print('x_label和y_data不匹配！')
+    if len(x_data) != x_number:
+        print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、hatch
     label = ['label1', 'label2', 'label3', 'label4']
@@ -80,13 +80,13 @@ def plot_bar(x_label, y_data, save_path, x_orient='vertical'):
     # 设置柱状体的宽度
     bar_width = 0.20
     # 设置x轴的标签
-    plt.xlabel('xlabel')
+    plt.xlabel(x_label)
     # 设置x轴的范围
     # plt.xlim([0, 5])
     # 设置x轴的刻度
-    plt.xticks(np.arange(x_number)+bar_width*(y_number/2-0.5), x_label)
+    plt.xticks(np.arange(x_number)+bar_width*(y_number/2-0.5), x_data)
     # 设置y轴的标签
-    plt.ylabel('ylabel')
+    plt.ylabel(y_label)
     # 设置y轴的范围
     # plt.ylim([-5, 25])
     for _ in range(y_number):
@@ -104,7 +104,7 @@ def plot_bar(x_label, y_data, save_path, x_orient='vertical'):
     plt.show()
 
 
-def plot_stacked_bar(x_label, y_data, save_path, var_orient='vertical'):
+def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('plot_figure var_orient error!')
         exit(1)
@@ -112,8 +112,8 @@ def plot_stacked_bar(x_label, y_data, save_path, var_orient='vertical'):
         y_data = list(map(list, zip(*y_data)))
     x_number = len(y_data[0])
     y_number = len(y_data)
-    if len(x_label) != x_number:
-        print('x_label和y_data不匹配！')
+    if len(x_data) != x_number:
+        print('x_data和y_data不匹配！')
         exit(1)
     # 计算堆叠后的_y_data
     _y_data = copy.deepcopy(y_data)
@@ -144,13 +144,13 @@ def plot_stacked_bar(x_label, y_data, save_path, var_orient='vertical'):
     # 设置柱状体的宽度
     bar_width = 0.6
     # 设置x轴的标签
-    plt.xlabel('xlabel')
+    plt.xlabel(x_label)
     # 设置x轴的范围
     # plt.xlim([0, 5])
     # 设置x轴的刻度
-    plt.xticks(np.arange(x_number), x_label)
+    plt.xticks(np.arange(x_number), x_data)
     # 设置y轴的标签
-    plt.ylabel('ylabel')
+    plt.ylabel(y_label)
     # 设置y轴的范围
     plt.ylim([0, 65])
     for _ in range(y_number-1, - 1, - 1):
@@ -180,6 +180,8 @@ if __name__ == '__main__':
     fd.write_data('data.csv', y_data)
     y_data = fd.read_data('data.csv')
     # data = {'dsads': 2, 'dasfadsa': 54.67, 'fsdfsd': 4324}
-    plot_line(x_data, y_data, 'data1.eps', 'horizon')
-    plot_bar(x_data, y_data, 'data2.eps', 'horizon')
-    plot_stacked_bar(x_data, y_data, 'data3.eps', 'horizon')
+    # plot_line(x_data, y_data, 'data1.eps',
+    #           'asd dfgdg hfgf', 'f4354gfd', 'horizon')
+    # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
+    # plot_stacked_bar(x_data, y_data, 'data3.eps',
+    #                  'dsdwwe', 'frd gtgthf', 'horizon')
