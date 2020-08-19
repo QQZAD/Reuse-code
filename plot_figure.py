@@ -43,7 +43,8 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
         plt.plot(x_data, y_data[_], label=label[_],
                  color=color[_], linestyle=linestyle[_], linewidth=3)
         plt.scatter(x_data, y_data[_], color=color[_], marker=marker[_], s=50)
-    plt.grid()
+    # 'x' 'y' 'both'
+    plt.grid(axis='y')
     plt.legend()
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
@@ -92,7 +93,8 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
     for _ in range(y_number):
         plt.bar(np.arange(x_number)+_*bar_width,
                 y_data[_], label=label[_], color=color[_], hatch=hatch[_], width=bar_width)
-    plt.grid()
+    # 'x' 'y' 'both'
+    plt.grid(axis='y')
     plt.legend()
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
@@ -161,7 +163,8 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
         for j in range(x_number):
             plt.text(j, _y_data[i][j]-y_data[i][j]/2, s=str(
                 prop_y_data[i][j]), ha='center', va='center', fontsize=14)
-    plt.grid()
+    # 'x' 'y' 'both'
+    plt.grid(axis='y')
     plt.legend()
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
@@ -180,8 +183,8 @@ if __name__ == '__main__':
     fd.write_data('data.csv', y_data)
     y_data = fd.read_data('data.csv')
     # data = {'dsads': 2, 'dasfadsa': 54.67, 'fsdfsd': 4324}
-    # plot_line(x_data, y_data, 'data1.eps',
-    #           'asd dfgdg hfgf', 'f4354gfd', 'horizon')
-    # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
-    # plot_stacked_bar(x_data, y_data, 'data3.eps',
-    #                  'dsdwwe', 'frd gtgthf', 'horizon')
+    plot_line(x_data, y_data, 'data1.eps',
+              'asd dfgdg hfgf', 'f4354gfd', 'horizon')
+    plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
+    plot_stacked_bar(x_data, y_data, 'data3.eps',
+                     'dsdwwe', 'frd gtgthf', 'horizon')
