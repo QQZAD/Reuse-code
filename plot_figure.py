@@ -188,3 +188,4 @@ if __name__ == '__main__':
     plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     plot_stacked_bar(x_data, y_data, 'data3.eps',
                      'dsdwwe', 'frd gtgthf', 'horizon')
+# rm -rf data.csv data1.eps data2.eps data3.eps __pycache__
