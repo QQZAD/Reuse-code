@@ -32,15 +32,18 @@ void deleteFile(char *fileName)
     }
 }
 
-void string(char *_str)
+void strCat(double number)
 {
-    char str[10] = "abc";
-    strcat(str, _str);
+    char _str[8];
+    sprintf(_str, "%.2lf", number);
+    char str[20] = "abcd";
+    int len = sizeof("abcd");
+    mempcpy(str + len - 1, _str, sizeof(_str));
     printf("%s\n", str);
 }
 
 int main()
 {
-    string((char *)"123");
+    strCat(123.56);
     return 0;
 }
