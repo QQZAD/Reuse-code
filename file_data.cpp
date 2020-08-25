@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 void newFolder(char *dirName)
 {
@@ -31,7 +32,15 @@ void deleteFile(char *fileName)
     }
 }
 
+void string(char *_str)
+{
+    char str[10] = "abc";
+    strcat(str, _str);
+    printf("%s\n", str);
+}
+
 int main()
 {
+    string((char *)"123");
     return 0;
 }
