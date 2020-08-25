@@ -1,4 +1,5 @@
 /*rm -rf main;g++ -g file_data.cpp -o main;./main*/
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -18,6 +19,15 @@ void deleteFolder(char *dirName)
     if (stat(dirName, &st) != -1)
     {
         rmdir(dirName);
+    }
+}
+
+void deleteFile(char *fileName)
+{
+    FILE *file;
+    if (file = fopen(fileName, "r"))
+    {
+        remove(fileName);
     }
 }
 
