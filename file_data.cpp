@@ -45,6 +45,6 @@ void strCat(int number)
 
 int main()
 {
-    strCat(12);
+    strCat(5);
     return 0;
 }
