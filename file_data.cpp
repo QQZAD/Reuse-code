@@ -1,9 +1,10 @@
-/*rm -rf main;g++ -g file_data.cpp -o main;./main*/
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+
+#define PRINTF_TO_FILE
 
 void newFolder(char *dirName)
 {
@@ -43,8 +44,37 @@ void strCat(int number)
     printf("%s\n", str);
 }
 
+void redirectPrintf()
+{
+    printf("[终端] 所有printf的输出信息输出到终端\n");
+
+    char fileName[10] = "debug.log";
+#ifdef PRINTF_TO_FILE
+    remove(fileName);
+    int stdDup = dup(1);
+    FILE *outLog = fopen(fileName, "a");
+    dup2(fileno(outLog), 1);
+#endif
+
+    printf("[文件] 所有printf的输出信息重定向到%s\n", fileName);
+
+#ifdef PRINTF_TO_FILE
+    fflush(stdout);
+    fclose(outLog);
+    dup2(stdDup, 1);
+    close(stdDup);
+#endif
+
+    printf("[终端] 所有printf的输出信息恢复到终端\n");
+}
+
 int main()
 {
     strCat(5);
+    int number = 34;
+    printf("%p\n", &number);
+    redirectPrintf();
     return 0;
 }
+//g++ -g file_data.cpp -o main;./main
+//rm -rf main debug.log
