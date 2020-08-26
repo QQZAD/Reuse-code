@@ -2,7 +2,7 @@
 # 非维护人员请不要运行此脚本
 for file in `ls $1`
 do
-    if [ "${file#*.}" != "sh" ] && [ "${file#*.}" != "cpp" ] && [ "${file#*.}" != "md" ] && [ "${file#*.}" != "py" ] && [ "${file#*.}" != "txt" ] && [ "${file#*.}" != "csv" ] && [ "${file#*.}" != "json" ]
+    if [ "${file#*.}" != "sh" ] && [ "${file#*.}" != "cpp" ] && [ "${file#*.}" != "cu" ] && [ "${file#*.}" != "md" ] && [ "${file#*.}" != "py" ] && [ "${file#*.}" != "txt" ] && [ "${file#*.}" != "csv" ] && [ "${file#*.}" != "json" ]
     then
         echo "发现未跟踪的文件$file，已终止！"
         exit
