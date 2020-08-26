@@ -76,5 +76,5 @@ int main()
     redirectPrintf();
     return 0;
 }
-//g++ -g file_data.cpp -o main;./main
-//rm -rf main debug.log
+// g++ -g skills.cpp -o main;./main
+// rm -rf main debug.log
