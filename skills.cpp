@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -66,6 +67,12 @@ void redirectPrintf()
 #endif
 
     printf("[终端] 所有printf的输出信息恢复到终端\n");
+}
+
+int getRand(int a, int b)
+{
+    /*a,a+1,...,b-1,b*/
+    return rand() % (b - a + 1) + a;
 }
 
 int main()
