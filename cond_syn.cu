@@ -7,6 +7,9 @@
 #define THREADS_PER_GROUP 64
 #define GROUP_NB 2
 
+static char c;
+static __device__ char devC;
+
 __global__ void cond_syn()
 {
 	/*该线程的ID*/
@@ -27,7 +30,7 @@ __global__ void cond_syn()
 	for (int i = 0; i < 3; i++)
 	{
 		/*执行该线程的相关任务*/
-		printf("groupId-%d-threadId-%d执行任务%d\n", groupId, threadId, i);
+		printf("%c groupId-%d-threadId-%d执行任务%d\n", devC, groupId, threadId, i);
 
 		/*组中最快的线程初始化组的状态变量为0*/
 		atomicCAS((group + groupId), THREADS_PER_GROUP, 0);
@@ -45,7 +48,7 @@ __global__ void cond_syn()
 
 		if (_threadId == 0)
 		{
-			printf("groupId-%d完成任务%d\n", groupId, i);
+			printf("%c groupId-%d完成任务%d\n", devC, groupId, i);
 		}
 	}
 }
@@ -57,6 +60,9 @@ int main()
 	int stdDup = dup(1);
 	FILE *outLog = fopen(fileName, "a");
 	dup2(fileno(outLog), 1);
+
+	c = '$';
+	cudaMemcpyToSymbol(devC, &c, sizeof(c));
 
 	cond_syn<<<1, GROUP_NB * THREADS_PER_GROUP>>>();
 	/*如果不加这句话main函数将不等cond_syn执行直接结束*/
