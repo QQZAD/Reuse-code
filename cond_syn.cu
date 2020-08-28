@@ -9,6 +9,7 @@
 
 static char c;
 static __device__ char devC;
+__device__ const int arrayNb = 2;
 
 __global__ void cond_syn()
 {
@@ -27,10 +28,14 @@ __global__ void cond_syn()
 	/*该组中已经完成任务的线程数量*/
 	group[groupId] = THREADS_PER_GROUP;
 
+	char array[arrayNb];
+	array[0] = '-';
+	array[1] = '*';
+
 	for (int i = 0; i < 3; i++)
 	{
 		/*执行该线程的相关任务*/
-		printf("%c groupId-%d-threadId-%d执行任务%d\n", devC, groupId, threadId, i);
+		printf("%c%c groupId-%d-threadId-%d执行任务%d\n", array[0], array[1], groupId, threadId, i);
 
 		/*组中最快的线程初始化组的状态变量为0*/
 		atomicCAS((group + groupId), THREADS_PER_GROUP, 0);
@@ -55,7 +60,7 @@ __global__ void cond_syn()
 
 int main()
 {
-	char fileName[10] = "out.log";
+	char fileName[15] = "cond_syn.log";
 	remove(fileName);
 	int stdDup = dup(1);
 	FILE *outLog = fopen(fileName, "a");
@@ -79,7 +84,13 @@ int main()
 rm -rf cond_syn cond_syn.o
 /usr/local/cuda/bin/nvcc -ccbin g++ -I /usr/local/cuda/include -I /usr/local/cuda/samples/common/inc -m64 -g -G -gencode arch=compute_75,code=sm_75 -gencode arch=compute_75,code=compute_75 -o cond_syn.o -c cond_syn.cu
 /usr/local/cuda/bin/nvcc -ccbin g++ -m64 -g -G -gencode arch=compute_75,code=sm_75 -gencode arch=compute_75,code=compute_75 -o cond_syn cond_syn.o -L /usr/local/cuda/lib64 -L /usr/local/cuda/samples/common/lib
+
 ./cond_syn
 
-rm -rf cond_syn cond_syn.o out.log
+cuda-gdb
+file cond_syn
+r
+q
+
+rm -rf cond_syn cond_syn.o cond_syn.log
 */
