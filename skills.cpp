@@ -49,7 +49,7 @@ void redirectPrintf()
 {
     printf("[终端] 所有printf的输出信息输出到终端\n");
 
-    char fileName[10] = "debug.log";
+    char fileName[15] = "skills.log";
 #ifdef PRINTF_TO_FILE
     remove(fileName);
     int stdDup = dup(1);
@@ -84,6 +84,6 @@ int main()
     return 0;
 }
 /*
-g++ -g skills.cpp -o main;./main
-rm -rf main debug.log
+g++ -g skills.cpp -o skills;./skills
+rm -rf skills skills.log
 */
