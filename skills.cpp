@@ -75,12 +75,20 @@ int getRand(int a, int b)
     return rand() % (b - a + 1) + a;
 }
 
+void printCurrDir()
+{
+    char buf[256];
+    getcwd(buf, sizeof(buf));
+    printf("获取工作目录%s\n", buf);
+}
+
 int main()
 {
-    strCat(5);
-    int number = 34;
-    printf("%p\n", &number);
-    redirectPrintf();
+    // strCat(5);
+    // int number = 34;
+    // printf("%p\n", &number);
+    // redirectPrintf();
+    printCurrDir();
     return 0;
 }
 /*
