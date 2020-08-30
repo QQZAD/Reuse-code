@@ -80,6 +80,7 @@ void printCurrDir()
     char buf[256];
     getcwd(buf, sizeof(buf));
     printf("获取工作目录%s\n", buf);
+    // 利用chdir();切换目录，用法类似linux系统下的cd
 }
 
 int main()
