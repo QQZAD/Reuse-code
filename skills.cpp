@@ -75,13 +75,7 @@ int getRand(int a, int b)
     return rand() % (b - a + 1) + a;
 }
 
-void printCurrDir()
-{
-    char buf[256];
-    getcwd(buf, sizeof(buf));
-    printf("获取工作目录%s\n", buf);
-    // 利用chdir();切换目录，用法类似linux系统下的cd
-}
+extern void checkWorkDir();
 
 int main()
 {
@@ -89,10 +83,10 @@ int main()
     // int number = 34;
     // printf("%p\n", &number);
     // redirectPrintf();
-    printCurrDir();
+    checkWorkDir();
     return 0;
 }
 /*
-g++ -g skills.cpp -o skills;./skills
-rm -rf skills skills.log
+g++ -c _skills/skills.cpp -o skills.o;g++ -g skills.cpp -o skills skills.o;./skills
+rm -rf skills.o skills skills.log
 */

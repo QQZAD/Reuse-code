@@ -8,6 +8,7 @@
         "__tuple": "cpp",
         "mutex": "cpp",
         "__mutex_base": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "filesystem": "cpp"
     },
 }
