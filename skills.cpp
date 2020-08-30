@@ -76,6 +76,7 @@ int getRand(int a, int b)
 }
 
 extern void checkWorkDir();
+extern void backWorkDir();
 
 int main()
 {
@@ -84,6 +85,7 @@ int main()
     // printf("%p\n", &number);
     // redirectPrintf();
     checkWorkDir();
+    backWorkDir();
     return 0;
 }
 /*
