@@ -1,24 +1,18 @@
 #include <stdio.h>
 
-#include <rte_memory.h>
-#include <rte_launch.h>
 #include <rte_eal.h>
-#include <rte_per_lcore.h>
-#include <rte_lcore.h>
-#include <rte_debug.h>
+#include <rte_common.h>
+#include <rte_malloc.h>
+#include <rte_ether.h>
 #include <rte_ethdev.h>
+#include <rte_mempool.h>
 #include <rte_mbuf.h>
-
-// #include "../config/flows.hpp"
+#include <rte_net.h>
+#include <rte_flow.h>
+#include <rte_cycles.h>
 
 #define FLOWS_NB 4
-//队列大小
-#define RX_RING_SIZE 1024
-#define TX_RING_SIZE 1024
-
-#define NUM_MBUFS 8191
-#define MBUF_CACHE_SIZE 250
-#define BURST_SIZE 32 //批大小
+#define BURST_SIZE 32
 
 struct SPar
 {
@@ -26,211 +20,145 @@ struct SPar
     char **argv;
 };
 
-// //使用全局设置
-// //使用作为参数传递的mbuf_pool的RX缓冲区初始化给定端口。
-// static int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
-// {
-//     struct rte_eth_conf port_conf;
-//     port_conf.rxmode.max_rx_pkt_len = RTE_ETHER_MAX_LEN;
+static uint8_t *flowPac[FLOWS_NB];
+static uint32_t flowPacLen[FLOWS_NB];
 
-//     const uint16_t rx_rings = 1, tx_rings = 1; //收发包队列
-//     uint16_t nb_rxd = RX_RING_SIZE;
-//     uint16_t nb_txd = TX_RING_SIZE;
-//     int retval;
-//     uint16_t q;
-//     struct rte_eth_dev_info dev_info;
-//     struct rte_eth_txconf txconf;
+static uint16_t port_id;
+struct rte_mempool *mbuf_pool;
 
-//     if (!rte_eth_dev_is_valid_port(port))
-//         return -1;
-
-//     retval = rte_eth_dev_info_get(port, &dev_info);
-//     if (retval != 0)
-//     {
-//         printf("Error during getting device (port %u) info: %s\n",
-//                port, strerror(-retval));
-//         return retval;
-//     }
-
-//     if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
-//         port_conf.txmode.offloads |=
-//             DEV_TX_OFFLOAD_MBUF_FAST_FREE;
-
-//     // 配置以太网设备
-//     retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
-//     if (retval != 0)
-//     {
-//         printf("rte_eth_dev_configure failed \n");
-//         return retval;
-//     }
-
-//     retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
-//     if (retval != 0)
-//         return retval;
-
-//     // 每个以太网端口分配并设置1个RX队列
-//     for (q = 0; q < rx_rings; q++)
-//     {
-//         retval = rte_eth_rx_queue_setup(port, q, nb_rxd, rte_eth_dev_socket_id(port), NULL, mbuf_pool);
-//         if (retval < 0)
-//         {
-//             printf("rte_eth_tx_queue_setup failed \n");
-//             return retval;
-//         }
-//     }
-
-//     txconf = dev_info.default_txconf;
-//     txconf.offloads = port_conf.txmode.offloads;
-
-//     // 每个以太网端口分配并设置1个TX队列
-//     for (q = 0; q < tx_rings; q++)
-//     {
-//         retval = rte_eth_tx_queue_setup(port, q, nb_txd, rte_eth_dev_socket_id(port), &txconf);
-//         if (retval < 0)
-//         {
-//             printf("rte_eth_tx_queue_setup failed \n");
-//             return retval;
-//         }
-//     }
-
-//     //开启以太网端口
-//     retval = rte_eth_dev_start(port);
-//     if (retval < 0)
-//     {
-//         printf("rte_eth_dev_start failed \n");
-//         return retval;
-//     }
-
-//     // //打印端口的MAC地址
-//     // struct rte_ether_addr addr;
-//     // retval = rte_eth_macaddr_get(port, &addr);
-//     // if (retval != 0)
-//     // 	return retval;
-
-//     // printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
-//     // 		   " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
-//     // 		port,
-//     // 		addr.addr_bytes[0], addr.addr_bytes[1],
-//     // 		addr.addr_bytes[2], addr.addr_bytes[3],
-//     // 		addr.addr_bytes[4], addr.addr_bytes[5]);
-
-//     //在混杂模式下为以太网设备启用RX
-//     retval = rte_eth_promiscuous_enable(port);
-//     if (retval != 0)
-//         return retval;
-
-//     return 0;
-// }
-
-//主要的逻辑核
-//完成工作的主线程，从输入端口读取并写入输出端口
-static int lcore_main(__attribute__((unused)) void *arg)
+static void init_port(void)
 {
+    int ret;
+    struct rte_eth_conf port_conf;
+    port_conf.rxmode.split_hdr_size = 0;
+    port_conf.txmode.offloads = DEV_TX_OFFLOAD_VLAN_INSERT | DEV_TX_OFFLOAD_IPV4_CKSUM | DEV_TX_OFFLOAD_UDP_CKSUM | DEV_TX_OFFLOAD_TCP_CKSUM | DEV_TX_OFFLOAD_SCTP_CKSUM | DEV_TX_OFFLOAD_TCP_TSO;
 
-    uint16_t port;
-    unsigned int lcore_id = rte_lcore_id(); //线程（核）的ID
+    struct rte_eth_rxconf rxq_conf;
+    struct rte_eth_dev_info dev_info;
 
-    // //检查端口是否与轮询线程在同一节点上，以实现最佳性能。
-    // RTE_ETH_FOREACH_DEV(port)
-    // if (rte_eth_dev_socket_id(port) > 0 && rte_eth_dev_socket_id(port) != (int)rte_socket_id())
-    //     printf("WARNING, port %u is on remote NUMA node to "
-    //            "polling thread.\n\tPerformance will "
-    //            "not be optimal.\n",
-    //            port);
+    ret = rte_eth_dev_info_get(port_id, &dev_info);
+    if (ret != 0)
+        rte_exit(EXIT_FAILURE,
+                 "Error during getting device (port %u) info: %s\n",
+                 port_id, strerror(-ret));
 
-    // printf("\nCore %u forwarding packets. [Ctrl+C to quit]\n", lcore_id);
-
-    //运行，直到应用程序退出或终止
-    while (1)
+    port_conf.txmode.offloads &= dev_info.tx_offload_capa;
+    printf(":: initializing port: %d\n", port_id);
+    ret = rte_eth_dev_configure(port_id,
+                                FLOWS_NB, 0, &port_conf);
+    if (ret < 0)
     {
-
-        //在端口上接收数据包，并在配对的端口上转发它们。 映射为0-> 1，1-> 0，2-> 3，3-> 2，依此类推。
-        RTE_ETH_FOREACH_DEV(port)
-        {
-            //从配对的第一个端口获取RX数据包
-            struct rte_mbuf *bufs[BURST_SIZE];
-            const uint16_t nb_rx = rte_eth_rx_burst(port, 0, bufs, BURST_SIZE);
-
-            // if (unlikely(nb_rx == 0))
-            //     continue;
-
-            //nb_rx表示包的个数，bufs表示包的地址指针
-            //将包拷贝到GPU显存
-
-            // pFlowsPackets[lcore_id] = NULL;
-            // flowsPacNb[lcore_id] = BURST_SIZE;
-
-            // //将TX数据包发送到第二个端口
-            // const uint16_t nb_tx = rte_eth_tx_burst(port ^ 1, 0, bufs, nb_rx);
-
-            // //释放所有未发送的数据包
-            // if (unlikely(nb_tx < nb_rx))
-            // {
-            //     uint16_t buf;
-            //     for (buf = nb_tx; buf < nb_rx; buf++)
-            //     {
-            //         // rte_pktmbuf_free(bufs[buf]);
-            //     }
-            // }
-        }
-
-        /*暂时只考虑一个批处理过程*/
-        break;
+        rte_exit(EXIT_FAILURE,
+                 ":: cannot configure device: err=%d, port=%u\n",
+                 ret, port_id);
     }
+
+    rxq_conf = dev_info.default_rxconf;
+    rxq_conf.offloads = port_conf.rxmode.offloads;
+    for (int i = 0; i < FLOWS_NB; i++)
+    {
+        ret = rte_eth_rx_queue_setup(port_id, i, 512,
+                                     rte_eth_dev_socket_id(port_id),
+                                     &rxq_conf,
+                                     mbuf_pool);
+        if (ret < 0)
+        {
+            rte_exit(EXIT_FAILURE,
+                     ":: Rx queue setup failed: err=%d, port=%u\n",
+                     ret, port_id);
+        }
+    }
+
+    ret = rte_eth_promiscuous_enable(port_id);
+    if (ret != 0)
+        rte_exit(EXIT_FAILURE,
+                 ":: promiscuous mode enable failed: err=%s, port=%u\n",
+                 rte_strerror(-ret), port_id);
+
+    ret = rte_eth_dev_start(port_id);
+    if (ret < 0)
+    {
+        rte_exit(EXIT_FAILURE,
+                 "rte_eth_dev_start:err=%d, port=%u\n",
+                 ret, port_id);
+    }
+
+    printf(":: initializing port: %d done\n", port_id);
 }
 
-//执行初始化并调用per-lcore函数。
+static void main_loop(void)
+{
+    struct rte_mbuf *mbufs[BURST_SIZE];
+    struct rte_ether_hdr *eth_hdr;
+    struct rte_mbuf *m;
+    uint8_t *_flowPac;
+    uint16_t total_len;
+
+    while (1)
+    {
+        for (int i = 0; i < FLOWS_NB; i++)
+        {
+            uint16_t nb_rx = rte_eth_rx_burst(port_id, i, mbufs, BURST_SIZE);
+            if (nb_rx)
+            {
+                printf("nb_rx-%d\n", nb_rx);
+
+                total_len = 0;
+                for (int j = 0; j < nb_rx; j++)
+                {
+                    m = mbufs[j];
+                    total_len += m->pkt_len;
+                }
+
+                flowPacLen[i] = total_len;
+                _flowPac = (uint8_t *)malloc(sizeof(uint8_t) * flowPacLen[i]);
+
+                for (int j = 0; j < nb_rx; j++)
+                {
+                    m = mbufs[j];
+                    eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
+                    memcpy(_flowPac, (uint8_t *)eth_hdr, m->pkt_len);
+                    // rte_pktmbuf_free(m);
+                    _flowPac += m->pkt_len;
+                }
+            }
+        }
+
+        break;
+    }
+
+    rte_eth_dev_stop(port_id);
+    rte_eth_dev_close(port_id);
+}
+
 void *launchDpdk(void *_argc)
 {
     SPar *par = (SPar *)_argc;
     int argc = par->argc;
     char **argv = par->argv;
 
-    struct rte_mempool *mbuf_pool;
-    unsigned nb_ports;
-    uint16_t portid;
-    unsigned lcore_id;
-
-    //初始化EAL层
     int ret = rte_eal_init(argc, argv);
     if (ret < 0)
-        rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
-
-    // //检查是否有偶数个端口要发送或者接收
-    // nb_ports = rte_eth_dev_count_avail();
-    // if (nb_ports < 2 || (nb_ports & 1))
-    //     rte_exit(EXIT_FAILURE, "Error: number of ports must be even\n");
-
-    // //在内存中创建一个新的内存池来保存mbufs
-    // mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-
-    // //判断内存池是否申请成功
-    // if (mbuf_pool == NULL)
-    //     rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
-
-    // //初始化端口
-    // RTE_ETH_FOREACH_DEV(portid)
-    // if (port_init(portid, mbuf_pool) != 0)
-    //     rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu16 "\n", portid);
-
-    // 多线程绑定，循环处理数据包
-    // rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER); //SKIP_MASTER = 0,  < lcore handler not executed by master core.
-
-    //在每个slave线程上调用lcore_main
-    RTE_LCORE_FOREACH_SLAVE(lcore_id)
     {
-        rte_eal_remote_launch(lcore_main, NULL, lcore_id);
+        rte_exit(EXIT_FAILURE, "EAL初始化失败\n");
     }
 
-    // for (int lcore_id = 0; lcore_id < FLOWS_NB; lcore_id++)
+    uint16_t nr_ports = rte_eth_dev_count_avail();
+    // if (nr_ports == 0)
     // {
-    //     rte_eal_remote_launch(lcore_main, NULL, lcore_id);
+    //     rte_exit(EXIT_FAILURE, "没有发现以太网设备端口\n");
     // }
+    port_id = 0;
 
-    //在主内核上调用lcore_main
-    // lcore_main(NULL);
+    mbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", 4096, 128, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    if (mbuf_pool == NULL)
+    {
+        rte_exit(EXIT_FAILURE, "无法初始化mbuf_pool\n");
+    }
 
-    rte_eal_mp_wait_lcore(); //等待所有的lcore完成，为每个lcore发出rte_eal_wait_lcore()
+    init_port();
+
+    // main_loop();
 
     return NULL;
 }
@@ -249,12 +177,14 @@ ls /sys/kernel/mm/hugepages
 sudo sh -c "echo 512 > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
 sudo gedit /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 
+lsmod
 sudo modprobe uio
 sudo insmod ~/dpdk-stable-19.11.3/build/kernel/linux/igb_uio/igb_uio.ko
 
 python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --status
-sudo ifconfig enp7s0 down
-sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio enp7s0
+sudo ifconfig wlp0s20f3 down
+sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 00:14.3
+sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=iwlwifi 00:14.3
 
 rm -rf dpdk;g++ -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf;sudo ./dpdk
 rm -rf dpdk
