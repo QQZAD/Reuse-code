@@ -10,7 +10,7 @@
 /*接收描述符的初始数量*/
 #define RX_RING_SIZE 1024
 /*批处理大小*/
-#define BATCH_SIZE 1024
+#define BATCH_SIZE 2048
 #define BURST_SIZE 32
 /*mbuf池中rte_mbuf的数量，内存池的最佳大小(根据内存使用情况):n = (2^q - 1)*/
 #define NUM_MBUFS 8981 //2^13-1
@@ -99,6 +99,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
     struct ether_hdr *eth_hdr;
 
     uint32_t batch_nb = 0;
+    /*一条流的所有数据包的总长度之和是一个很大的数，需要用uint64_t类型*/
     uint64_t batch_len = 0;
 
     uint8_t *pac_bytes[BATCH_SIZE] = {NULL};
@@ -128,13 +129,13 @@ static int lcore_main(__attribute__((unused)) void *arg)
                 pac_bytes[pac_id] = (uint8_t *)malloc(sizeof(uint8_t) * pac_len[pac_id]);
                 eth_hdr = rte_pktmbuf_mtod(bufs[i], struct ether_hdr *);
                 memcpy(pac_bytes[pac_id], (uint8_t *)eth_hdr, pac_len[pac_id]);
-                // rte_pktmbuf_free(bufs[i]);
+                rte_pktmbuf_free(bufs[i]);
             }
             batch_nb += _nb_rx;
             printf("lcore %u 已接收%u个数据包\n", lcore_id, batch_nb);
             if (batch_nb >= BATCH_SIZE)
             {
-                printf("lcore %u 数据包的总长度为%u\n", lcore_id, batch_len);
+                printf("lcore %u 数据包的总长度为%lu\n", lcore_id, batch_len);
                 flow = (uint8_t *)malloc(sizeof(uint8_t) * batch_len);
                 bytes = flow;
                 for (int i = 0; i < BATCH_SIZE; i++)
@@ -229,7 +230,7 @@ sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:0
 sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
-rm -rf dpdk;g++ -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf;sudo ./dpdk -l 0-1
+rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk
 
 [6]清除可执行文件dpdk
 rm -rf dpdk
