@@ -99,10 +99,10 @@ static int lcore_main(__attribute__((unused)) void *arg)
     struct ether_hdr *eth_hdr;
 
     uint32_t batch_nb = 0;
-    uint16_t batch_len = 0;
+    uint64_t batch_len = 0;
 
     uint8_t *pac_bytes[BATCH_SIZE] = {NULL};
-    uint16_t pac_len[BATCH_SIZE] = {0};
+    uint32_t pac_len[BATCH_SIZE] = {0};
 
     uint8_t *flow = NULL;
     uint8_t *bytes = NULL;
@@ -114,11 +114,13 @@ static int lcore_main(__attribute__((unused)) void *arg)
         uint16_t nb_rx = rte_eth_rx_burst(portid, queueid, bufs, BURST_SIZE);
         if (nb_rx)
         {
+            uint16_t _nb_rx = nb_rx;
             for (int i = 0; i < nb_rx; i++)
             {
                 unsigned pac_id = batch_nb + i;
                 if (pac_id >= BATCH_SIZE)
                 {
+                    _nb_rx = i;
                     break;
                 }
                 pac_len[pac_id] = bufs[i]->pkt_len;
@@ -128,7 +130,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
                 memcpy(pac_bytes[pac_id], (uint8_t *)eth_hdr, pac_len[pac_id]);
                 // rte_pktmbuf_free(bufs[i]);
             }
-            batch_nb += nb_rx;
+            batch_nb += _nb_rx;
             printf("lcore %u 已接收%u个数据包\n", lcore_id, batch_nb);
             if (batch_nb >= BATCH_SIZE)
             {
@@ -138,7 +140,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
                 for (int i = 0; i < BATCH_SIZE; i++)
                 {
                     memcpy(bytes, pac_bytes[i], pac_len[i]);
-                    bytes += pac_len[i]; //?what is it
+                    bytes += pac_len[i];
                     free(pac_bytes[i]);
                 }
                 /*flow数据指针和BATCH_SIZE*/
