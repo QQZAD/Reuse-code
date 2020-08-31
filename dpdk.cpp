@@ -1,174 +1,225 @@
-#include <stdio.h>
-
+#include <stdint.h>
+#include <inttypes.h>
 #include <rte_eal.h>
-#include <rte_common.h>
-#include <rte_malloc.h>
-#include <rte_ether.h>
 #include <rte_ethdev.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_net.h>
-#include <rte_flow.h>
+#include <rte_ether.h>
 #include <rte_cycles.h>
+#include <rte_lcore.h>
+#include <rte_ip.h>
+#include <rte_mbuf.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <signal.h>
+// #include <net/ethernet.h>
 
-#define FLOWS_NB 4
+#define MAX_SOURCE_SIZE (0x100000)
+
+#define RX_RING_SIZE 1024
+#define TX_RING_SIZE 1024
+
+#define NUM_MBUFS 8191
+#define MBUF_CACHE_SIZE 250
 #define BURST_SIZE 32
 
-struct SPar
+static struct
 {
-    int argc;
-    char **argv;
-};
+    uint64_t total_cycles;
+    uint64_t total_pkts;
+} latency_numbers;
 
-static uint8_t *flowPac[FLOWS_NB];
-static uint32_t flowPacLen[FLOWS_NB];
-
-static uint16_t port_id;
+static volatile bool force_quit;
 struct rte_mempool *mbuf_pool;
-
-static void init_port(void)
+static void
+signal_handler(int signum)
 {
-    int ret;
-    struct rte_eth_conf port_conf;
-    port_conf.rxmode.split_hdr_size = 0;
-    port_conf.txmode.offloads = DEV_TX_OFFLOAD_VLAN_INSERT | DEV_TX_OFFLOAD_IPV4_CKSUM | DEV_TX_OFFLOAD_UDP_CKSUM | DEV_TX_OFFLOAD_TCP_CKSUM | DEV_TX_OFFLOAD_SCTP_CKSUM | DEV_TX_OFFLOAD_TCP_TSO;
-
-    struct rte_eth_rxconf rxq_conf;
-    struct rte_eth_dev_info dev_info;
-
-    ret = rte_eth_dev_info_get(port_id, &dev_info);
-    if (ret != 0)
-        rte_exit(EXIT_FAILURE,
-                 "Error during getting device (port %u) info: %s\n",
-                 port_id, strerror(-ret));
-
-    port_conf.txmode.offloads &= dev_info.tx_offload_capa;
-    printf(":: initializing port: %d\n", port_id);
-    ret = rte_eth_dev_configure(port_id,
-                                FLOWS_NB, 0, &port_conf);
-    if (ret < 0)
+    struct rte_eth_stats eth_stats;
+    int i;
+    if (signum == SIGINT || signum == SIGTERM)
     {
-        rte_exit(EXIT_FAILURE,
-                 ":: cannot configure device: err=%d, port=%u\n",
-                 ret, port_id);
+        printf("\n\nSignal %d received, preparing to exit...\n",
+               signum);
+        RTE_ETH_FOREACH_DEV(i)
+        {
+            rte_eth_stats_get(i, &eth_stats);
+            printf("Total number of packets received %lu, dropped rx full %lu and rest= %lu, %lu, %lu\n", eth_stats.ipackets, eth_stats.imissed, eth_stats.ierrors, eth_stats.rx_nombuf, eth_stats.q_ipackets[0]);
+        }
+        force_quit = true;
+    }
+}
+struct rte_ether_addr addr;
+
+/*
+ * Initialises a given port using global settings and with the rx buffers
+ * coming from the mbuf_pool passed as parameter
+ */
+static inline int
+port_init(uint16_t port, struct rte_mempool *mbuf_pool)
+{
+    struct rte_eth_conf port_conf;
+    port_conf.rxmode.max_rx_pkt_len = RTE_ETHER_MAX_LEN;
+
+    const uint16_t rx_rings = 1, tx_rings = 1;
+    uint16_t nb_rxd = RX_RING_SIZE;
+    uint16_t nb_txd = TX_RING_SIZE;
+    int retval;
+    uint16_t q;
+    struct rte_eth_dev_info dev_info;
+    struct rte_eth_txconf txconf;
+
+    if (!rte_eth_dev_is_valid_port(port))
+        return -1;
+
+    rte_eth_dev_info_get(port, &dev_info);
+    if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
+        port_conf.txmode.offloads |=
+            DEV_TX_OFFLOAD_MBUF_FAST_FREE;
+
+    retval = rte_eth_dev_configure(port, rx_rings, tx_rings, &port_conf);
+    if (retval != 0)
+        return retval;
+
+    retval = rte_eth_dev_adjust_nb_rx_tx_desc(port, &nb_rxd, &nb_txd);
+    if (retval != 0)
+    {
+        printf("Error in adjustment\n");
+        return retval;
     }
 
-    rxq_conf = dev_info.default_rxconf;
-    rxq_conf.offloads = port_conf.rxmode.offloads;
-    for (int i = 0; i < FLOWS_NB; i++)
+    for (q = 0; q < rx_rings; q++)
     {
-        ret = rte_eth_rx_queue_setup(port_id, i, 512,
-                                     rte_eth_dev_socket_id(port_id),
-                                     &rxq_conf,
-                                     mbuf_pool);
-        if (ret < 0)
+        retval = rte_eth_rx_queue_setup(port, q, nb_rxd,
+                                        rte_eth_dev_socket_id(port), NULL, mbuf_pool);
+        if (retval < 0)
         {
-            rte_exit(EXIT_FAILURE,
-                     ":: Rx queue setup failed: err=%d, port=%u\n",
-                     ret, port_id);
+            printf("RX queue setup prob\n");
+            return retval;
         }
     }
 
-    ret = rte_eth_promiscuous_enable(port_id);
-    if (ret != 0)
-        rte_exit(EXIT_FAILURE,
-                 ":: promiscuous mode enable failed: err=%s, port=%u\n",
-                 rte_strerror(-ret), port_id);
-
-    ret = rte_eth_dev_start(port_id);
-    if (ret < 0)
+    txconf = dev_info.default_txconf;
+    txconf.offloads = port_conf.txmode.offloads;
+    for (q = 0; q < tx_rings; q++)
     {
-        rte_exit(EXIT_FAILURE,
-                 "rte_eth_dev_start:err=%d, port=%u\n",
-                 ret, port_id);
+        retval = rte_eth_tx_queue_setup(port, q, nb_txd,
+                                        rte_eth_dev_socket_id(port), &txconf);
+        if (retval < 0)
+            return retval;
     }
 
-    printf(":: initializing port: %d done\n", port_id);
+    retval = rte_eth_dev_start(port);
+    if (retval < 0)
+    {
+        printf("Error in start\n");
+        return retval;
+    }
+
+    rte_eth_macaddr_get(port, &addr);
+    printf("Port %u MAC: %02" PRIx8 " %02" PRIx8 " %02" PRIx8
+           " %02" PRIx8 " %02" PRIx8 " %02" PRIx8 "\n",
+           (unsigned)port,
+           addr.addr_bytes[0], addr.addr_bytes[1],
+           addr.addr_bytes[2], addr.addr_bytes[3],
+           addr.addr_bytes[4], addr.addr_bytes[5]);
+
+    rte_eth_promiscuous_enable(port);
+
+    return 0;
 }
 
-static void main_loop(void)
+/*
+ * Main thread that does the work, reading from INPUT_PORT
+ * and writing to OUTPUT_PORT
+ */
+static int
+lcore_main(__attribute__((unused)) void *arg)
 {
-    struct rte_mbuf *mbufs[BURST_SIZE];
+    uint16_t port;
     struct rte_ether_hdr *eth_hdr;
-    struct rte_mbuf *m;
-    uint8_t *_flowPac;
-    uint16_t total_len;
+    //struct ether_addr addr;
 
-    while (1)
+    //rte_eth_macaddr_get(portid, &addr);
+    struct rte_ipv4_hdr *ipv4_hdr;
+    int32_t i;
+    RTE_ETH_FOREACH_DEV(port)
     {
-        for (int i = 0; i < FLOWS_NB; i++)
+        if (rte_eth_dev_socket_id(port) > 0 &&
+            rte_eth_dev_socket_id(port) !=
+                (int)rte_socket_id())
+            printf("WARNING, port %u is on remote NUMA node to "
+                   "polling thread.\n\tPerformance will "
+                   "not be optimal.\n",
+                   port);
+    }
+    printf("\nCore %u forwarding packets.  [Ctrl+C to quit]\n",
+           rte_lcore_id());
+
+    for (;;)
+    {
+        RTE_ETH_FOREACH_DEV(port)
         {
-            uint16_t nb_rx = rte_eth_rx_burst(port_id, i, mbufs, BURST_SIZE);
-            if (nb_rx)
+            struct rte_mbuf *bufs[BURST_SIZE];
+            const uint16_t nb_rx = rte_eth_rx_burst(port, 0, bufs, BURST_SIZE);
+            for (i = 0; i < nb_rx; i++)
             {
-                printf("nb_rx-%d\n", nb_rx);
+                ipv4_hdr = rte_pktmbuf_mtod_offset(bufs[i], struct rte_ipv4_hdr *, sizeof(struct rte_ether_addr));
+                printf("Packet ip received %d\n", ipv4_hdr->src_addr);
+            }
 
-                total_len = 0;
-                for (int j = 0; j < nb_rx; j++)
-                {
-                    m = mbufs[j];
-                    total_len += m->pkt_len;
-                }
+            if (unlikely(nb_rx == 0))
+                continue;
+            const uint16_t nb_tx = 0; // = rte_eth_tx_burst(port ^ 1, 0, bufs, nb_rx);
+            if (unlikely(nb_tx < nb_rx))
+            {
+                uint16_t buf;
 
-                flowPacLen[i] = total_len;
-                _flowPac = (uint8_t *)malloc(sizeof(uint8_t) * flowPacLen[i]);
-
-                for (int j = 0; j < nb_rx; j++)
-                {
-                    m = mbufs[j];
-                    eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
-                    memcpy(_flowPac, (uint8_t *)eth_hdr, m->pkt_len);
-                    // rte_pktmbuf_free(m);
-                    _flowPac += m->pkt_len;
-                }
+                // for (buf = nb_tx; buf < nb_rx; buf++)
+                //     rte_pktmbuf_free(bufs[buf]);
             }
         }
-
-        break;
+        if (force_quit)
+            break;
     }
-
-    rte_eth_dev_stop(port_id);
-    rte_eth_dev_close(port_id);
 }
 
-void *launchDpdk(void *_argc)
-{
-    SPar *par = (SPar *)_argc;
-    int argc = par->argc;
-    char **argv = par->argv;
-
-    int ret = rte_eal_init(argc, argv);
-    if (ret < 0)
-    {
-        rte_exit(EXIT_FAILURE, "EAL初始化失败\n");
-    }
-
-    uint16_t nr_ports = rte_eth_dev_count_avail();
-    // if (nr_ports == 0)
-    // {
-    //     rte_exit(EXIT_FAILURE, "没有发现以太网设备端口\n");
-    // }
-    port_id = 0;
-
-    mbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", 4096, 128, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
-    if (mbuf_pool == NULL)
-    {
-        rte_exit(EXIT_FAILURE, "无法初始化mbuf_pool\n");
-    }
-
-    init_port();
-
-    // main_loop();
-
-    return NULL;
-}
-
+/* Main function, does initialisation and calls the per-lcore functions */
 int main(int argc, char *argv[])
 {
-    SPar par;
-    par.argc = argc;
-    par.argv = argv;
-    launchDpdk((void *)&par);
+    uint16_t nb_ports;
+    uint16_t portid, port;
+
+    /* init EAL */
+    int ret = rte_eal_init(argc, argv);
+
+    if (ret < 0)
+        rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
+    argc -= ret;
+    argv += ret;
+    force_quit = false;
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    nb_ports = rte_eth_dev_count_avail();
+    printf("size ordered %u\n", NUM_MBUFS * nb_ports);
+    mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL",
+                                        NUM_MBUFS * nb_ports, MBUF_CACHE_SIZE, 0,
+                                        RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    if (nb_ports < 1)
+        rte_exit(EXIT_FAILURE, "Error: number of ports must be greater than %d\n", nb_ports);
+
+    if (mbuf_pool == NULL)
+        rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
+
+    // initialize all ports
+    RTE_ETH_FOREACH_DEV(portid)
+    if (port_init(portid, mbuf_pool) != 0)
+        rte_exit(EXIT_FAILURE, "Cannot init port %" PRIu8 "\n",
+                 portid);
+    if (rte_lcore_count() > 1)
+        printf("\nWARNING: Too much enabled lcores - "
+               "App uses only 1 lcore\n");
+
+    // call lcore_main on master core only
+    lcore_main(NULL);
     return 0;
 }
 
@@ -182,9 +233,12 @@ sudo modprobe uio
 sudo insmod ~/dpdk-stable-19.11.3/build/kernel/linux/igb_uio/igb_uio.ko
 
 python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --status
-sudo ifconfig wlp0s20f3 down
-sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 00:14.3
-sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=iwlwifi 00:14.3
+卸载网卡ens38(02:06.0)
+sudo ifconfig ens38 down
+将网卡ens38(02:06.0)绑定至DPDK驱动igb_uio
+sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:06.0
+将网卡ens38(02:06.0)绑定至内核驱动e1000
+sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 rm -rf dpdk;g++ -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf;sudo ./dpdk
 rm -rf dpdk
