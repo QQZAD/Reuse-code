@@ -6,11 +6,9 @@
 /*该宏定义用于对接到GRIGHT*/
 // #define GRIGHT
 /*流的条数*/
-#define FLOWS_NB 2 //对应./dpdk l 0-1
+#define FLOWS_NB 1 //对应./dpdk -l 0-2
 /*接收描述符的初始数量*/
 #define RX_RING_SIZE 1024
-/*批处理大小*/
-#define BATCH_SIZE 2048
 #define BURST_SIZE 32
 /*mbuf池中rte_mbuf的数量，内存池的最佳大小(根据内存使用情况):n = (2^q - 1)*/
 #define NUM_MBUFS 8981 //2^13-1
@@ -28,6 +26,8 @@ struct SPar
     }
 };
 
+/*流的批处理大小*/
+static uint32_t batch_size[FLOWS_NB] = {512};
 /*使用第一个网络设备端口*/
 static uint16_t portid = 0;
 /*单队列网卡*/
@@ -65,7 +65,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     /*运行lspci -vvv|grep "MSI-X"后有结果返回说明NIC支持多队列*/
     const uint16_t nb_rx_queue = 1;
     const uint16_t nb_tx_queue = 0;
-    uint16_t nb_rxd = RX_RING_SIZE;
+    uint16_t nb_rxd = FLOWS_NB * RX_RING_SIZE;
     uint16_t nb_txd = 0;
 
     int ret = rte_eth_dev_configure(port, nb_rx_queue, nb_tx_queue, &port_conf);
@@ -95,31 +95,32 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 
 static int lcore_main(__attribute__((unused)) void *arg)
 {
-    struct rte_mbuf *bufs[BURST_SIZE];
+    unsigned lcore_id = rte_lcore_id();
     struct ether_hdr *eth_hdr;
 
     uint32_t batch_nb = 0;
     /*一条流的所有数据包的总长度之和是一个很大的数，需要用uint64_t类型*/
     uint64_t batch_len = 0;
 
-    uint8_t *pac_bytes[BATCH_SIZE] = {NULL};
-    uint32_t pac_len[BATCH_SIZE] = {0};
+    uint16_t flow_batch_size = batch_size[lcore_id - 1];
+    uint8_t *pac_bytes[flow_batch_size] = {NULL};
+    uint32_t pac_len[flow_batch_size] = {0};
 
     uint8_t *flow = NULL;
     uint8_t *bytes = NULL;
 
-    unsigned lcore_id = rte_lcore_id();
     printf("\nlcore %u 接收数据包 [用Ctrl+C终止]\n", lcore_id);
     while (1)
     {
+        struct rte_mbuf *bufs[BURST_SIZE];
         uint16_t nb_rx = rte_eth_rx_burst(portid, queueid, bufs, BURST_SIZE);
-        if (nb_rx)
+        if (unlikely(nb_rx > 0))
         {
             uint16_t _nb_rx = nb_rx;
             for (int i = 0; i < nb_rx; i++)
             {
                 unsigned pac_id = batch_nb + i;
-                if (pac_id >= BATCH_SIZE)
+                if (pac_id >= flow_batch_size)
                 {
                     _nb_rx = i;
                     break;
@@ -133,18 +134,18 @@ static int lcore_main(__attribute__((unused)) void *arg)
             }
             batch_nb += _nb_rx;
             printf("lcore %u 已接收%u个数据包\n", lcore_id, batch_nb);
-            if (batch_nb >= BATCH_SIZE)
+            if (batch_nb >= flow_batch_size)
             {
                 printf("lcore %u 数据包的总长度为%lu\n", lcore_id, batch_len);
                 flow = (uint8_t *)malloc(sizeof(uint8_t) * batch_len);
                 bytes = flow;
-                for (int i = 0; i < BATCH_SIZE; i++)
+                for (int i = 0; i < flow_batch_size; i++)
                 {
                     memcpy(bytes, pac_bytes[i], pac_len[i]);
                     bytes += pac_len[i];
                     free(pac_bytes[i]);
                 }
-                /*flow数据指针和BATCH_SIZE*/
+                /*flow数据指针和batch_size[lcore_id]*/
                 /*暂时只考虑一个批处理过程*/
                 break;
             }
@@ -154,6 +155,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
             break;
         }
     }
+    return 0;
 }
 
 void *launchDpdk(void *par)
@@ -180,12 +182,14 @@ void *launchDpdk(void *par)
     {
         printf("网络设备端口的数量为%u\n", nb_ports);
     }
-    mbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", NUM_MBUFS * nb_ports, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+    mbuf_pool = rte_pktmbuf_pool_create("mbuf_pool", nb_ports * FLOWS_NB * NUM_MBUFS, MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
     if (mbuf_pool == NULL)
     {
         rte_exit(EXIT_FAILURE, "无法创建mbuf池\n");
     }
     port_init(portid, mbuf_pool);
+
+    rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
 
     // unsigned lcore_id;
     // RTE_LCORE_FOREACH_SLAVE(lcore_id)
@@ -193,9 +197,9 @@ void *launchDpdk(void *par)
     //     rte_eal_remote_launch(lcore_main, NULL, lcore_id);
     // }
 
-    lcore_main(NULL);
+    // lcore_main(NULL);
 
-    // rte_eal_mp_wait_lcore();
+    rte_eal_mp_wait_lcore();
     return NULL;
 }
 
@@ -230,7 +234,7 @@ sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:0
 sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
-rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk
+rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-2
 
 [6]清除可执行文件dpdk
 rm -rf dpdk
