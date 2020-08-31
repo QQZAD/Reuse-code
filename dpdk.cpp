@@ -1,12 +1,13 @@
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
+#include <pthread.h>
 #include <signal.h>
 #include <netinet/ether.h>
 
 /*该宏定义用于对接到GRIGHT*/
 // #define GRIGHT
 /*流的条数*/
-#define FLOWS_NB 1 //对应./dpdk -l 0-2
+#define FLOWS_NB 3 //对应./dpdk -l 0-3
 /*接收描述符的初始数量*/
 #define RX_RING_SIZE 1024
 #define BURST_SIZE 32
@@ -27,13 +28,14 @@ struct SPar
 };
 
 /*流的批处理大小*/
-static uint32_t batch_size[FLOWS_NB] = {512};
+static uint32_t batch_size[FLOWS_NB] = {128, 384, 256};
 /*使用第一个网络设备端口*/
 static uint16_t portid = 0;
 /*单队列网卡*/
 static uint16_t queueid = 0;
 static volatile bool force_quit;
 static struct rte_mempool *mbuf_pool;
+static pthread_mutex_t lock;
 
 static void signal_handler(int signum)
 {
@@ -98,9 +100,9 @@ static int lcore_main(__attribute__((unused)) void *arg)
     unsigned lcore_id = rte_lcore_id();
     struct ether_hdr *eth_hdr;
 
-    uint32_t batch_nb = 0;
     /*一条流的所有数据包的总长度之和是一个很大的数，需要用uint64_t类型*/
     uint64_t batch_len = 0;
+    uint32_t batch_nb = 0;
 
     uint16_t flow_batch_size = batch_size[lcore_id - 1];
     uint8_t *pac_bytes[flow_batch_size] = {NULL};
@@ -108,13 +110,14 @@ static int lcore_main(__attribute__((unused)) void *arg)
 
     uint8_t *flow = NULL;
     uint8_t *bytes = NULL;
-
     printf("\nlcore %u 接收数据包 [用Ctrl+C终止]\n", lcore_id);
     while (1)
     {
         struct rte_mbuf *bufs[BURST_SIZE];
+        pthread_mutex_lock(&lock);
         uint16_t nb_rx = rte_eth_rx_burst(portid, queueid, bufs, BURST_SIZE);
-        if (unlikely(nb_rx > 0))
+        pthread_mutex_unlock(&lock);
+        if (nb_rx)
         {
             uint16_t _nb_rx = nb_rx;
             for (int i = 0; i < nb_rx; i++)
@@ -145,8 +148,8 @@ static int lcore_main(__attribute__((unused)) void *arg)
                     bytes += pac_len[i];
                     free(pac_bytes[i]);
                 }
-                /*flow数据指针和batch_size[lcore_id]*/
-                /*暂时只考虑一个批处理过程*/
+                /*flow和flow_batch_size*/
+                //TODO 考虑多个批处理过程
                 break;
             }
         }
@@ -171,7 +174,7 @@ void *launchDpdk(void *par)
     int ret = rte_eal_init(argc, argv);
     if (ret < 0)
     {
-        rte_exit(EXIT_FAILURE, "EAL初始化错误，运行命令没有加sudo？\n");
+        rte_exit(EXIT_FAILURE, "EAL初始化错误，没有分配巨页内存? 没有加载驱动模块? 没有绑定网卡？运行命令没有加sudo？\n");
     }
     uint16_t nb_ports = rte_eth_dev_count_avail();
     if (nb_ports == 0)
@@ -188,17 +191,7 @@ void *launchDpdk(void *par)
         rte_exit(EXIT_FAILURE, "无法创建mbuf池\n");
     }
     port_init(portid, mbuf_pool);
-
     rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
-
-    // unsigned lcore_id;
-    // RTE_LCORE_FOREACH_SLAVE(lcore_id)
-    // {
-    //     rte_eal_remote_launch(lcore_main, NULL, lcore_id);
-    // }
-
-    // lcore_main(NULL);
-
     rte_eal_mp_wait_lcore();
     return NULL;
 }
@@ -213,6 +206,9 @@ int main(int argc, char *argv[])
 #endif
 /*
 [1]确保DPDK正确安装并配置
+注意：对于虚拟机中的网卡，在编译安装之前
+gedit ~/dpdk-stable-19.11.3/kernel/linux/igb_uio/igb_uio.c
+将pci_intx_mask_supported(udev->pdev)改为pci_intx_mask_supported(udev->pdev)||true
 
 [2]根据硬件配置和需求分配巨页内存
 ls /sys/kernel/mm/hugepages
@@ -234,7 +230,7 @@ sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:0
 sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
-rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-2
+rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-3
 
 [6]清除可执行文件dpdk
 rm -rf dpdk
