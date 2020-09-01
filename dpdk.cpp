@@ -1,5 +1,6 @@
 #include <rte_ethdev.h>
 #include <rte_mbuf.h>
+#include <rte_eal.h>
 #include <pthread.h>
 #include <signal.h>
 #include <netinet/ether.h>
