@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <cuda_runtime.h>
-#include <helper_functions.h>
-
+#include <bits/stdint-uintn.h>
 #include <unistd.h>
 
 #define THREADS_PER_GROUP 64
