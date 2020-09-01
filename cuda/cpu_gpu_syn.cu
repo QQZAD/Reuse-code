@@ -15,21 +15,24 @@ void *cpu_producer(void *argc)
 {
     while (1)
     {
-        if (flag[0] - flag[1] == 1)
-        {
-            printf("[cpu] 队列是满的\n");
-        }
+        bool temp = false;
         while (flag[0] - flag[1] == 1)
         {
+            if (temp == false)
+            {
+                printf("[cpu] 队列是满的\n");
+                temp = true;
+            }
         }
         int task = rand() % 100 + 1;
-        printf("[cpu] 在%d处插入任务%d\n", flag[1], task);
+        int id = flag[1];
         // sleep(rand() % 5 + 1);
-        list[flag[1]] = task;
+        list[id] = task;
         flag[1] = NEXT_ITEM(flag[1]);
-        cudaMemcpy(devList, list, ITEM_NB * sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(devFlag, flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
-        break;
+        cudaMemcpy(devList + id, list + id, sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice);
+
+        printf("[cpu] 在%d处插入任务%d\n", id, task);
     }
     return NULL;
 }
@@ -41,19 +44,27 @@ __global__ void gpu_kernel(int *devList, int *devFlag)
 
     while (1)
     {
-        if (threadId == 0 && devFlag[0] == devFlag[1])
-        {
-            printf("[gpu] 队列是空的\n");
-        }
+        // __syncthreads();
+        bool temp = false;
         while (devFlag[0] == devFlag[1])
         {
+            if (threadId == 0)
+            {
+                if (temp == false)
+                {
+                    printf("[gpu] 队列是空的\n");
+                    temp = true;
+                }
+            }
         }
         int id = devFlag[0];
         int task = devList[id];
+        int result = 0;
         for (int i = 0; i < task; i++)
         {
-            devList[id] *= (i + 1);
+            result += i * id * task;
         }
+        // __syncthreads();
         if (threadId == 0)
         {
             printf("[gpu] %d处的任务%d处理完成\n", id, task);
@@ -62,31 +73,26 @@ __global__ void gpu_kernel(int *devList, int *devFlag)
     }
 }
 
-void *gpu_consumer(void *argc)
-{
-    gpu_kernel<<<1, 32>>>(devList, devFlag);
-    /*如果不加这句话main函数将不等cond_syn执行直接结束*/
-    cudaDeviceSynchronize();
-    cudaMemcpy(list, devList, ITEM_NB * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(flag, devFlag, 2 * sizeof(int), cudaMemcpyDeviceToHost);
-    return NULL;
-}
-
 int main()
 {
     int len = ITEM_NB * sizeof(int);
     list = (int *)malloc(len);
     memset(list, 0, len);
     cudaMalloc((void **)&devList, len);
-    cudaMalloc((void **)&devFlag, 2);
+    cudaMalloc((void **)&devFlag, 2 * sizeof(int));
     cudaMemcpy(devList, list, len, cudaMemcpyHostToDevice);
     cudaMemcpy(devFlag, flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
 
-    pthread_t cpu_t, gpu_t;
+    cudaStream_t stream1;
+    cudaStreamCreate(&stream1);
+    cudaStreamDestroy(stream1);
+
+    pthread_t cpu_t;
     pthread_create(&cpu_t, NULL, cpu_producer, NULL);
-    pthread_create(&gpu_t, NULL, gpu_consumer, NULL);
+    gpu_kernel<<<1, 32>>>(devList, devFlag);
+
     pthread_join(cpu_t, NULL);
-    pthread_join(gpu_t, NULL);
+    cudaDeviceSynchronize();
 
     free(list);
     return 0;

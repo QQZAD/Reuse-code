@@ -5,6 +5,10 @@
         "__config": "cpp",
         "*.tcc": "cpp",
         "fstream": "cpp",
-        "locale": "cpp"
+        "locale": "cpp",
+        "thread": "cpp",
+        "__locale": "cpp",
+        "functional": "cpp",
+        "algorithm": "cpp"
     },
 }
