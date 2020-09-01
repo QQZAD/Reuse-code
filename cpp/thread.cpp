@@ -88,6 +88,6 @@ int main()
     return 0;
 }
 /*
-g++ -g thread.cpp -o thread -lpthread;./thread
-rm -rf thread
+cd cpp;g++ -g thread.cpp -o thread -lpthread;./thread;cd ..
+cd cpp;rm -rf thread;cd ..
 */

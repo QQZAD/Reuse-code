@@ -80,6 +80,6 @@ int main()
     return 0;
 }
 /*
-g++ -g boost.cpp -o boost -lpthread -lboost_thread;./boost
-rm -rf boost
+cd cpp;g++ -g boost.cpp -o boost -lpthread -lboost_thread;./boost;cd ..
+cd cpp;rm -rf boost;cd ..
 */

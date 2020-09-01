@@ -149,7 +149,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
                     bytes += pac_len[i];
                     free(pac_bytes[i]);
                 }
-                /*flow和flow_batch_size*/
+                /*flow*/
                 //TODO 考虑多个批处理过程
                 break;
             }
@@ -233,8 +233,8 @@ sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:0
 sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
-rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-3
+cd dpdk;rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-3;cd ..
 
 [6]清除可执行文件dpdk
-rm -rf dpdk
+cd dpdk;rm -rf dpdk;cd ..
 */

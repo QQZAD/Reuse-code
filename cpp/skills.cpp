@@ -89,6 +89,6 @@ int main()
     return 0;
 }
 /*
-g++ -c _skills/skills.cpp -o skills.o;g++ -g skills.cpp -o skills skills.o;./skills
-rm -rf skills.o skills skills.log
+cd cpp;g++ -c _skills/skills.cpp -o skills.o;g++ -g skills.cpp -o skills skills.o;./skills;cd ..
+cd cpp;rm -rf skills.o skills skills.log;cd ..
 */
