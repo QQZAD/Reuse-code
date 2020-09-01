@@ -27,8 +27,8 @@ void *cpu_producer(void *argc)
         // sleep(rand() % 5 + 1);
         list[flag[1]] = task;
         flag[1] = NEXT_ITEM(flag[1]);
-        cudaMemcpy((void **)&devList, &list, ITEM_NB * sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy((void **)&devFlag, &flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(devList, list, ITEM_NB * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy(devFlag, flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
         break;
     }
     return NULL;
@@ -67,8 +67,8 @@ void *gpu_consumer(void *argc)
     gpu_kernel<<<1, 32>>>(devList, devFlag);
     /*如果不加这句话main函数将不等cond_syn执行直接结束*/
     cudaDeviceSynchronize();
-    cudaMemcpy((void **)&list, &devList, ITEM_NB * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy((void **)&flag, &devFlag, 2, cudaMemcpyDeviceToHost);
+    cudaMemcpy(list, devList, ITEM_NB * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(flag, devFlag, 2 * sizeof(int), cudaMemcpyDeviceToHost);
     return NULL;
 }
 
@@ -79,8 +79,8 @@ int main()
     memset(list, 0, len);
     cudaMalloc((void **)&devList, len);
     cudaMalloc((void **)&devFlag, 2);
-    cudaMemcpy((void **)&devList, &list, len, cudaMemcpyHostToDevice);
-    cudaMemcpy((void **)&devFlag, &flag, 2, cudaMemcpyHostToDevice);
+    cudaMemcpy(devList, list, len, cudaMemcpyHostToDevice);
+    cudaMemcpy(devFlag, flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
 
     pthread_t cpu_t, gpu_t;
     pthread_create(&cpu_t, NULL, cpu_producer, NULL);
