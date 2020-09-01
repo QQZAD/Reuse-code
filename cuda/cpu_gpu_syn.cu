@@ -1,65 +1,94 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <cuda_runtime.h>
-#include <bits/stdint-uintn.h>
+#include <pthread.h>
 #include <unistd.h>
 
+#define ITEM_NB 4 //实际容量要减1
+#define NEXT_ITEM(ID) ((ID + 1) % ITEM_NB)
 
-__global__ void cpu_gpu_syn()
+static int *list;
+static int flag[2] = {0};
+static int *devList, *devFlag;
+
+void *cpu_producer(void *argc)
+{
+    while (1)
+    {
+        if (flag[0] - flag[1] == 1)
+        {
+            printf("[cpu] 队列是满的\n");
+        }
+        while (flag[0] - flag[1] == 1)
+        {
+        }
+        int task = rand() % 100 + 1;
+        printf("[cpu] 在%d处插入任务%d\n", flag[1], task);
+        // sleep(rand() % 5 + 1);
+        list[flag[1]] = task;
+        flag[1] = NEXT_ITEM(flag[1]);
+        cudaMemcpy((void **)&devList, &list, ITEM_NB * sizeof(int), cudaMemcpyHostToDevice);
+        cudaMemcpy((void **)&devFlag, &flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
+        break;
+    }
+    return NULL;
+}
+
+__global__ void gpu_kernel(int *devList, int *devFlag)
 {
     /*该线程的ID*/
     int threadId = threadIdx.x;
 
-    /*该线程所在组的ID*/
-    int groupId = threadId / THREADS_PER_GROUP;
-
-    /*该线程的相对ID*/
-    int _threadId = threadId % THREADS_PER_GROUP;
-
-    /*组的状态变量*/
-    __shared__ int group[GROUP_NB];
-
-    /*该组中已经完成任务的线程数量*/
-    group[groupId] = THREADS_PER_GROUP;
-
-    char array[arrayNb];
-    array[0] = '-';
-    array[1] = '*';
-
-    for (int i = 0; i < 3; i++)
+    while (1)
     {
-        /*执行该线程的相关任务*/
-        printf("%c%c groupId-%d-threadId-%d执行任务%d\n", array[0], array[1], groupId, threadId, i);
-
-        /*组中最快的线程初始化组的状态变量为0*/
-        atomicCAS((group + groupId), THREADS_PER_GROUP, 0);
-
-        /*组中线程完成任务后更新组的状态变量*/
-        int temp = atomicAdd((group + groupId), uint32_t(1));
-
-        /*等待组中所有线程全部完成任务*/
-        if (temp != THREADS_PER_GROUP - 1)
+        if (threadId == 0 && devFlag[0] == devFlag[1])
         {
-            while (group[groupId] != THREADS_PER_GROUP)
-            {
-            }
+            printf("[gpu] 队列是空的\n");
         }
-
-        if (_threadId == 0)
+        while (devFlag[0] == devFlag[1])
         {
-            printf("%c groupId-%d完成任务%d\n", devC, groupId, i);
+        }
+        int id = devFlag[0];
+        int task = devList[id];
+        for (int i = 0; i < task; i++)
+        {
+            devList[id] *= (i + 1);
+        }
+        if (threadId == 0)
+        {
+            printf("[gpu] %d处的任务%d处理完成\n", id, task);
+            devFlag[0] = NEXT_ITEM(devFlag[0]);
         }
     }
 }
 
-int main()
+void *gpu_consumer(void *argc)
 {
-    c = '$';
-    cudaMemcpyToSymbol(devC, &c, sizeof(c));
-
-    cpu_gpu_syn<<<1, GROUP_NB * THREADS_PER_GROUP>>>();
+    gpu_kernel<<<1, 32>>>(devList, devFlag);
     /*如果不加这句话main函数将不等cond_syn执行直接结束*/
     cudaDeviceSynchronize();
+    cudaMemcpy((void **)&list, &devList, ITEM_NB * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy((void **)&flag, &devFlag, 2, cudaMemcpyDeviceToHost);
+    return NULL;
+}
 
+int main()
+{
+    int len = ITEM_NB * sizeof(int);
+    list = (int *)malloc(len);
+    memset(list, 0, len);
+    cudaMalloc((void **)&devList, len);
+    cudaMalloc((void **)&devFlag, 2);
+    cudaMemcpy((void **)&devList, &list, len, cudaMemcpyHostToDevice);
+    cudaMemcpy((void **)&devFlag, &flag, 2, cudaMemcpyHostToDevice);
+
+    pthread_t cpu_t, gpu_t;
+    pthread_create(&cpu_t, NULL, cpu_producer, NULL);
+    pthread_create(&gpu_t, NULL, gpu_consumer, NULL);
+    pthread_join(cpu_t, NULL);
+    pthread_join(gpu_t, NULL);
+
+    free(list);
     return 0;
 }
 /*
@@ -76,5 +105,5 @@ file cpu_gpu_syn
 r
 q
 
-rm -rf cpu_gpu_syn cpu_gpu_syn.o cpu_gpu_syn.log
+rm -rf cpu_gpu_syn cpu_gpu_syn.o
 */
