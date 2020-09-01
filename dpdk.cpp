@@ -192,8 +192,10 @@ void *launchDpdk(void *par)
         rte_exit(EXIT_FAILURE, "无法创建mbuf池\n");
     }
     port_init(portid, mbuf_pool);
+    pthread_mutex_init(&(lock), NULL);
     rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
     rte_eal_mp_wait_lcore();
+    pthread_mutex_destroy(&(lock));
     return NULL;
 }
 

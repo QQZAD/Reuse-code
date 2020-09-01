@@ -3,12 +3,6 @@
 #include <bits/stdint-uintn.h>
 #include <unistd.h>
 
-#define THREADS_PER_GROUP 64
-#define GROUP_NB 2
-
-static char c;
-static __device__ char devC;
-__device__ const int arrayNb = 2;
 
 __global__ void cpu_gpu_syn()
 {
