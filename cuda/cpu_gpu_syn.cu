@@ -55,8 +55,11 @@ void *cpu_producer(void *argc)
         if (NEXT_TASK(id) != flag[0])
         {
             list[id].set(i);
-            list[id].isUsed = true;
             flag[1] = NEXT_TASK(flag[1]);
+
+            int *data=(int*)
+
+
             cudaMemcpyAsync(devList + id, list + id, sizeof(struct Task), cudaMemcpyHostToDevice, streamHd);
             cudaMemcpyAsync(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice, streamHd);
             printf("[cpu] 在%d处插入任务%d\n", id, i);
