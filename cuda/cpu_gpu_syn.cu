@@ -4,19 +4,22 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define ITEM_NB 4 //实际容量要减1
-#define NEXT_ITEM(ID) ((ID + 1) % ITEM_NB)
+#define TASK_NB 4 //实际容量要减1
+#define NEXT_ITEM(ID) ((ID + 1) % TASK_NB)
 
-static int *list;
-static int flag[2] = {0};
+static int *list, *flag;
 static int *devList, *devFlag;
+
+static cudaStream_t streamHd;
+static cudaStream_t streamDh;
+static cudaStream_t streamKernel;
 
 void *cpu_producer(void *argc)
 {
     while (1)
     {
         bool temp = false;
-        while (flag[0] - flag[1] == 1)
+        while (flag[0] == NEXT_ITEM(flag[1]))
         {
             if (temp == false)
             {
@@ -24,27 +27,23 @@ void *cpu_producer(void *argc)
                 temp = true;
             }
         }
-        int task = rand() % 100 + 1;
         int id = flag[1];
-        // sleep(rand() % 5 + 1);
+        int task = rand() % 100 + 1;
         list[id] = task;
         flag[1] = NEXT_ITEM(flag[1]);
-        cudaMemcpy(devList + id, list + id, sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice);
-
+        cudaMemcpyAsync(devList + id, list + id, sizeof(int), cudaMemcpyHostToDevice, streamHd);
+        cudaMemcpyAsync(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice, streamHd);
         printf("[cpu] 在%d处插入任务%d\n", id, task);
     }
     return NULL;
 }
 
-__global__ void gpu_kernel(int *devList, int *devFlag)
+__global__ void gpu_consumer(int *devList, int *devFlag)
 {
-    /*该线程的ID*/
     int threadId = threadIdx.x;
-
     while (1)
     {
-        // __syncthreads();
+        __syncthreads();
         bool temp = false;
         while (devFlag[0] == devFlag[1])
         {
@@ -64,37 +63,57 @@ __global__ void gpu_kernel(int *devList, int *devFlag)
         {
             result += i * id * task;
         }
-        // __syncthreads();
+        __syncthreads();
         if (threadId == 0)
         {
             printf("[gpu] %d处的任务%d处理完成\n", id, task);
             devFlag[0] = NEXT_ITEM(devFlag[0]);
+            cudaMemcpyAsync(list + id, devList + id, sizeof(int), cudaMemcpyDeviceToHost, streamDh);
+            cudaMemcpyAsync(flag, devFlag, sizeof(int), cudaMemcpyDeviceToHost, streamDh);
         }
     }
 }
 
+void init()
+{
+    int listBytes = TASK_NB * sizeof(int);
+    int flagBytes = 2 * sizeof(int);
+    cudaMallocHost((void **)&list, listBytes);
+    cudaMallocHost((void **)&flag, flagBytes);
+    memset(list, 0, listBytes);
+    memset(flag, 0, flagBytes);
+    cudaMalloc((void **)&devList, listBytes);
+    cudaMalloc((void **)&devFlag, flagBytes);
+    cudaStreamCreate(&streamHd);
+    cudaStreamCreate(&streamDh);
+    cudaStreamCreate(&streamKernel);
+    cudaMemcpyAsync(devList, list, listBytes, cudaMemcpyHostToDevice, streamHd);
+    cudaMemcpyAsync(devFlag, flag, flagBytes, cudaMemcpyHostToDevice, streamHd);
+}
+
+void free()
+{
+    cudaStreamDestroy(streamHd);
+    cudaStreamDestroy(streamDh);
+    cudaStreamDestroy(streamKernel);
+    cudaFree(devList);
+    cudaFree(devFlag);
+    cudaFreeHost(list);
+    cudaFreeHost(flag);
+}
+
 int main()
 {
-    int len = ITEM_NB * sizeof(int);
-    list = (int *)malloc(len);
-    memset(list, 0, len);
-    cudaMalloc((void **)&devList, len);
-    cudaMalloc((void **)&devFlag, 2 * sizeof(int));
-    cudaMemcpy(devList, list, len, cudaMemcpyHostToDevice);
-    cudaMemcpy(devFlag, flag, 2 * sizeof(int), cudaMemcpyHostToDevice);
-
-    cudaStream_t stream1;
-    cudaStreamCreate(&stream1);
-    cudaStreamDestroy(stream1);
+    init();
 
     pthread_t cpu_t;
     pthread_create(&cpu_t, NULL, cpu_producer, NULL);
-    gpu_kernel<<<1, 32>>>(devList, devFlag);
+    gpu_consumer<<<1, 64, 0, streamKernel>>>(devList, devFlag);
 
     pthread_join(cpu_t, NULL);
     cudaDeviceSynchronize();
 
-    free(list);
+    free();
     return 0;
 }
 /*

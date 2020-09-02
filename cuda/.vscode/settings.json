@@ -9,6 +9,7 @@
         "thread": "cpp",
         "__locale": "cpp",
         "functional": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "ios": "cpp"
     },
 }
