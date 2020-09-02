@@ -11,36 +11,28 @@
 
 struct Task
 {
-    int taskId;
-    bool isFin;
-    int task[WARP_SIZE];
-    void set(int value)
+    int id;
+    int *pData;
+    void set(int _id, int *_pData)
     {
-        taskId = value;
-        isFin = false;
-        for (int i = 0; i < WARP_SIZE; i++)
-        {
-            task[i] = value;
-        }
+        id = _id;
+        pData = _pData;
     }
 };
 
 /*主机端内存*/
 static struct Task *list;
-static struct Task *result;
 static int *flag;
-
-/*设备端内存*/
-static struct Task *devList;
-static int *devFlag;
 
 /*设备端访问主机端pinned内存*/
 static struct Task *hostList;
-static struct Task *hostResult;
 static int *hostFlag;
 
 /*主机端->设备端内存拷贝流*/
 static cudaStream_t streamHd;
+
+/*设备端->主机端内存拷贝流*/
+static cudaStream_t streamDh;
 
 /*内核执行流*/
 static cudaStream_t streamKernel;
@@ -60,20 +52,21 @@ void *cpu_producer(void *argc)
             }
         }
         int id = flag[1];
-        while (list[id].isFin == true)
+        if (NEXT_TASK(id) != flag[0])
         {
+            list[id].set(i);
+            list[id].isUsed = true;
+            flag[1] = NEXT_TASK(flag[1]);
+            cudaMemcpyAsync(devList + id, list + id, sizeof(struct Task), cudaMemcpyHostToDevice, streamHd);
+            cudaMemcpyAsync(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice, streamHd);
+            printf("[cpu] 在%d处插入任务%d\n", id, i);
         }
-        list[id].set(i);
-        flag[1] = NEXT_TASK(flag[1]);
-        cudaMemcpyAsync(devList + id, list + id, sizeof(struct Task), cudaMemcpyHostToDevice, streamHd);
-        cudaMemcpyAsync(devFlag + 1, flag + 1, sizeof(int), cudaMemcpyHostToDevice, streamHd);
-        printf("[cpu] 在%d处插入任务%d\n", id, i);
     }
     return NULL;
 }
 
 /*设备端消费者*/
-__global__ void gpu_consumer(struct Task *devList, int *devFlag, struct Task *hostList, int *hostFlag, struct Task *hostResult)
+__global__ void gpu_consumer(struct Task *hostList, int *hostFlag)
 {
     int threadId = threadIdx.x;
     while (1)
@@ -98,7 +91,6 @@ __global__ void gpu_consumer(struct Task *devList, int *devFlag, struct Task *ho
         if (threadId == 0)
         {
             printf("[gpu] %d处的任务%d处理完成\n", id, devList[id].taskId);
-            hostList[id].isFin = true;
             devFlag[0] = NEXT_TASK(devFlag[0]);
             hostFlag[0] = devFlag[0];
         }
@@ -110,14 +102,12 @@ void *cpu_saver(void *argc)
 {
     remove("./result.txt");
     FILE *fp = fopen("./result.txt", "a+");
-    fprintf(fp, "%d\t", list[0].taskId);
     while (1)
     {
         for (int id = 0; id < LIST_SIZE; id++)
         {
-            if (list[id].isFin == true)
+            if (list[id].isUsed == true)
             {
-                printf("%d ", list[id].taskId);
                 fprintf(fp, "%d\t", list[id].taskId);
                 for (int i = 0; i < WARP_SIZE; i++)
                 {
@@ -127,9 +117,8 @@ void *cpu_saver(void *argc)
                         fprintf(fp, " ");
                     }
                 }
-                printf("%d\n", result[id].task[0]);
                 fprintf(fp, "\n");
-                list[id].isFin = false;
+                // list[id].isUsed = false;
             }
         }
     }
@@ -142,43 +131,33 @@ void init()
 {
     int listBytes = LIST_SIZE * sizeof(struct Task);
     int flagBytes = 2 * sizeof(int);
-    int resultBytes = LIST_SIZE * sizeof(struct Task);
 
     cudaMallocHost((void **)&list, listBytes, cudaHostAllocMapped);
     cudaMallocHost((void **)&flag, flagBytes, cudaHostAllocMapped);
-    cudaMallocHost((void **)&result, resultBytes, cudaHostAllocMapped);
 
     for (int i = 0; i < LIST_SIZE; i++)
     {
-        list[i].set(0);
-        result[i].set(0);
+        list[i].set(0, NULL);
     }
     memset(flag, 0, flagBytes);
 
-    cudaMalloc((void **)&devList, listBytes);
-    cudaMalloc((void **)&devFlag, flagBytes);
-
     cudaStreamCreate(&streamHd);
+    cudaStreamCreate(&streamDh);
     cudaStreamCreate(&streamKernel);
-
-    cudaMemcpyAsync(devList, list, listBytes, cudaMemcpyHostToDevice, streamHd);
-    cudaMemcpyAsync(devFlag, flag, flagBytes, cudaMemcpyHostToDevice, streamHd);
 
     cudaHostGetDevicePointer<struct Task>(&hostList, (void *)list, 0);
     cudaHostGetDevicePointer<int>(&hostFlag, (void *)flag, 0);
-    cudaHostGetDevicePointer<struct Task>(&hostResult, (void *)result, 0);
 }
 
 /*清理*/
 void free()
 {
     cudaStreamDestroy(streamHd);
+    cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
-    cudaFree(devList);
-    cudaFree(devFlag);
+
     cudaFreeHost(list);
     cudaFreeHost(flag);
-    cudaFreeHost(result);
 }
 
 int main()
@@ -187,7 +166,7 @@ int main()
 
     pthread_t cpu_pro, cpu_sav;
     pthread_create(&cpu_sav, NULL, cpu_saver, NULL);
-    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(devList, devFlag, hostList, hostFlag, hostResult);
+    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(hostList, hostFlag);
     pthread_create(&cpu_pro, NULL, cpu_producer, NULL);
 
     pthread_join(cpu_pro, NULL);
