@@ -13,13 +13,11 @@ struct Task
 {
     int taskId;
     bool isFin;
-    bool isSave;
     int task[WARP_SIZE];
     void set(int value)
     {
         taskId = value;
         isFin = false;
-        isSave = false;
         for (int i = 0; i < WARP_SIZE; i++)
         {
             task[i] = value;
@@ -62,11 +60,8 @@ void *cpu_producer(void *argc)
             }
         }
         int id = flag[1];
-        if (list[id].isFin == true)
+        while (list[id].isFin == true)
         {
-            while (list[id].isSave == false)
-            {
-            }
         }
         list[id].set(i);
         flag[1] = NEXT_TASK(flag[1]);
@@ -98,12 +93,6 @@ __global__ void gpu_consumer(struct Task *devList, int *devFlag, struct Task *ho
         }
         int id = devFlag[0];
         int task = devList[id].task[threadId];
-        if (hostList[id].isFin == true)
-        {
-            while (hostList[id].isSave == false)
-            {
-            }
-        }
         hostResult[id].task[threadId] = pow(task, 2);
         __syncthreads();
         if (threadId == 0)
@@ -121,25 +110,27 @@ void *cpu_saver(void *argc)
 {
     remove("./result.txt");
     FILE *fp = fopen("./result.txt", "a+");
+    fprintf(fp, "%d\t", list[0].taskId);
     while (1)
     {
-        int id = flag[0];
-        if (list[id].isFin == true)
+        for (int id = 0; id < LIST_SIZE; id++)
         {
-            printf("%d ", list[id].taskId);
-            fprintf(fp, "%d\t", list[id].taskId);
-            for (int i = 0; i < WARP_SIZE; i++)
+            if (list[id].isFin == true)
             {
-                fprintf(fp, "%d", result[id].task[i]);
-                if (i < WARP_SIZE - 1)
+                printf("%d ", list[id].taskId);
+                fprintf(fp, "%d\t", list[id].taskId);
+                for (int i = 0; i < WARP_SIZE; i++)
                 {
-                    fprintf(fp, " ");
+                    fprintf(fp, "%d", result[id].task[i]);
+                    if (i < WARP_SIZE - 1)
+                    {
+                        fprintf(fp, " ");
+                    }
                 }
+                printf("%d\n", result[id].task[0]);
+                fprintf(fp, "\n");
+                list[id].isFin = false;
             }
-            printf("%d\n", result[id].task[0]);
-            fprintf(fp, "\n");
-            list[id].isSave = true;
-            list[id].isFin = false;
         }
     }
     fclose(fp);
@@ -195,9 +186,9 @@ int main()
     init();
 
     pthread_t cpu_pro, cpu_sav;
-    pthread_create(&cpu_pro, NULL, cpu_producer, NULL);
-    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(devList, devFlag, hostList, hostFlag, hostResult);
     pthread_create(&cpu_sav, NULL, cpu_saver, NULL);
+    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(devList, devFlag, hostList, hostFlag, hostResult);
+    pthread_create(&cpu_pro, NULL, cpu_producer, NULL);
 
     pthread_join(cpu_pro, NULL);
     cudaDeviceSynchronize();
