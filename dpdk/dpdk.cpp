@@ -8,7 +8,7 @@
 /*该宏定义用于对接到GRIGHT*/
 // #define GRIGHT
 /*流的条数*/
-#define FLOWS_NB 3 //对应./dpdk -l 0-3
+#define FLOWS_NB 2 //对应./dpdk -l 0-1
 /*接收描述符的初始数量*/
 #define RX_RING_SIZE 1024
 #define BURST_SIZE 32
@@ -29,7 +29,7 @@ struct SPar
 };
 
 /*流的批处理大小*/
-static uint32_t batch_size[FLOWS_NB] = {128, 384, 256};
+static uint32_t batch_size[FLOWS_NB] = {4, 5};
 /*使用第一个网络设备端口*/
 static uint16_t portid = 0;
 /*单队列网卡*/
@@ -58,13 +58,17 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     }
     /*使用默认参数配置网络设备端口*/
     struct rte_eth_conf port_conf;
+    port_conf.link_speeds = 0;
     port_conf.rxmode.max_rx_pkt_len = RTE_ETHER_MAX_LEN;
+    port_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
+    port_conf.txmode.mq_mode = ETH_MQ_TX_NONE;
     struct rte_eth_dev_info dev_info;
     rte_eth_dev_info_get(port, &dev_info);
-    if (dev_info.tx_offload_capa & DEV_TX_OFFLOAD_MBUF_FAST_FREE)
-    {
-        port_conf.txmode.offloads |= DEV_TX_OFFLOAD_MBUF_FAST_FREE;
-    }
+    port_conf.rx_adv_conf.rss_conf.rss_hf = dev_info.flow_type_rss_offloads;
+    port_conf.rxmode.offloads = dev_info.rx_offload_capa;
+    port_conf.txmode.offloads = dev_info.tx_offload_capa;
+    port_conf.rxmode.offloads &= (~DEV_RX_OFFLOAD_RSS_HASH);
+
     /*运行lspci -vvv|grep "MSI-X"后有结果返回说明NIC支持多队列*/
     const uint16_t nb_rx_queue = 1;
     const uint16_t nb_tx_queue = 0;
@@ -105,7 +109,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
     uint64_t batch_len = 0;
     uint32_t batch_nb = 0;
 
-    uint16_t flow_batch_size = batch_size[lcore_id - 1];
+    uint16_t flow_batch_size = batch_size[lcore_id];
     uint8_t *pac_bytes[flow_batch_size] = {NULL};
     uint32_t pac_len[flow_batch_size] = {0};
 
@@ -194,6 +198,7 @@ void *launchDpdk(void *par)
     port_init(portid, mbuf_pool);
     pthread_mutex_init(&(lock), NULL);
     rte_eal_mp_remote_launch(lcore_main, NULL, SKIP_MASTER);
+    lcore_main(NULL);
     rte_eal_mp_wait_lcore();
     pthread_mutex_destroy(&(lock));
     return NULL;
@@ -233,7 +238,7 @@ sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:0
 sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
-cd dpdk;rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-3;cd ..
+cd dpdk;rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-1;cd ..
 
 [6]清除可执行文件dpdk
 cd dpdk;rm -rf dpdk;cd ..
