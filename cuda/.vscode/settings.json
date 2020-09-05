@@ -32,6 +32,10 @@
         "iterator": "cpp",
         "limits": "cpp",
         "memory": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "__hash_table": "cpp",
+        "__tree": "cpp"
     },
 }
