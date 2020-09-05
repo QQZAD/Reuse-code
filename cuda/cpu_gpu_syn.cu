@@ -4,37 +4,41 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 8
+#define TASK_NB 100
 #define WARP_SIZE 32
-#define LIST_SIZE 4 //实际容量要减1
+#define LIST_SIZE 21 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
 
 struct Task
 {
     int id;
     int *pData;
-    void set(int _id, int *_pData)
+    int *pResult;
+    bool isSave;
+    Task()
     {
-        id = _id;
-        pData = _pData;
+        id = 0;
+        pData = NULL;
+        pResult = NULL;
+        isSave = false;
     }
 };
 
 /*主机端内存*/
 static struct Task *list;
-static struct Task *result;
 static int *flag;
+static int *finTaksNb;
 
 /*设备端访问主机端pinned内存*/
 static struct Task *hostList;
-static struct Task *hostResult;
 static int *hostFlag;
+static int *hostFinTaksNb;
 
 /*主机端->设备端内存拷贝流*/
 static cudaStream_t streamHd;
 
 /*设备端->主机端内存拷贝流*/
-// static cudaStream_t streamDh;
+static cudaStream_t streamDh;
 
 /*内核执行流*/
 static cudaStream_t streamKernel;
@@ -54,53 +58,32 @@ void *cpu_producer(void *argc)
             }
         }
         int cur = flag[1];
-        int dataBytes = sizeof(int) * WARP_SIZE;
-        int *data = (int *)malloc(dataBytes);
+        int bytes = sizeof(int) * WARP_SIZE;
+        int *data = (int *)malloc(bytes);
+        int *result = (int *)malloc(bytes);
         for (int j = 0; j < WARP_SIZE; j++)
         {
             data[j] = i;
+            result[j] = 0;
         }
-        cudaMalloc((void **)&(list[cur].pData), dataBytes);
-        cudaMemcpyAsync(list[cur].pData, data, dataBytes, cudaMemcpyHostToDevice, streamHd);
-        list[cur].set(i, list[cur].pData);
+        cudaMalloc((void **)&(list[cur].pData), bytes);
+        cudaMalloc((void **)&(list[cur].pResult), bytes);
+        cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
+        cudaMemcpyAsync(list[cur].pResult, result, bytes, cudaMemcpyHostToDevice, streamHd);
+        list[cur].id = i;
         flag[1] = NEXT_TASK(cur);
         free(data);
+        free(result);
         printf("[cpu] 在%d处插入任务%d\n", cur, i);
     }
     return NULL;
 }
 
-/*保存结果到文件*/
-void *cpu_saver(void *argc)
-{
-    while (1)
-    {
-        int cur = flag[0];
-        while (result[cur].pData == NULL)
-        {
-        }
-        FILE *fp = fopen("./result.txt", "a+");
-        fprintf(fp, "%d\t", result[cur].id);
-        for (int i = 0; i < WARP_SIZE; i++)
-        {
-            fprintf(fp, "%d", result[cur].pData[i]);
-            if (i < WARP_SIZE - 1)
-            {
-                fprintf(fp, " ");
-            }
-        }
-        fprintf(fp, "\n");
-        fclose(fp);
-        flag[0] = NEXT_TASK(cur);
-        result[cur].pData = NULL;
-    }
-}
-
 /*设备端消费者*/
-__global__ void gpu_consumer(struct Task *hostList, int *hostFlag, struct Task *hostResult)
+__global__ void gpu_consumer(struct Task *hostList, int *hostFlag, int *hostFinTaksNb)
 {
     int threadId = threadIdx.x;
-    while (1)
+    while (hostFinTaksNb[0] != TASK_NB)
     {
         __syncthreads();
         bool temp = false;
@@ -117,18 +100,49 @@ __global__ void gpu_consumer(struct Task *hostList, int *hostFlag, struct Task *
         }
         int cur = hostFlag[0];
         int task = hostList[cur].pData[threadId];
-        hostResult[cur].pData[threadId] = pow(task, 2);
+        hostList[cur].pResult[threadId] = pow(task, 2) - task;
         __syncthreads();
         if (threadId == 0)
         {
             printf("[gpu] %d处的任务%d处理完成\n", cur, hostList[cur].id);
-
-            // hostFlag[0] = NEXT_TASK(hostFlag[0]);
-            while (hostResult[cur].pData != NULL)
+            hostList[cur].isSave = true;
+            while (hostList[cur].isSave == true)
             {
             }
         }
     }
+}
+
+/*保存结果到文件*/
+void *cpu_saver(void *argc)
+{
+    while (finTaksNb[0] != TASK_NB)
+    {
+        int cur = flag[0];
+        while (list[cur].isSave == false)
+        {
+        }
+        int resultBytes = sizeof(int) * WARP_SIZE;
+        int *result = (int *)malloc(resultBytes);
+        cudaMemcpyAsync(result, list[cur].pResult, resultBytes, cudaMemcpyDeviceToHost, streamDh);
+        FILE *fp = fopen("./result.txt", "a+");
+        fprintf(fp, "%d\t", list[cur].id);
+        for (int i = 0; i < WARP_SIZE; i++)
+        {
+            fprintf(fp, "%d", result[i]);
+            if (i < WARP_SIZE - 1)
+            {
+                fprintf(fp, " ");
+            }
+        }
+        fprintf(fp, "\n");
+        fclose(fp);
+        free(result);
+        flag[0] = NEXT_TASK(cur);
+        list[cur].isSave = false;
+        (finTaksNb[0])++;
+    }
+    return NULL;
 }
 
 /*初始化*/
@@ -140,34 +154,29 @@ void init()
 
     cudaMallocHost((void **)&list, listBytes, cudaHostAllocMapped);
     cudaMallocHost((void **)&flag, flagBytes, cudaHostAllocMapped);
-    cudaMallocHost((void **)&result, listBytes, cudaHostAllocMapped);
-
-    for (int i = 0; i < LIST_SIZE; i++)
-    {
-        list[i].set(0, NULL);
-        result[i].set(0, NULL);
-    }
+    cudaMallocHost((void **)&finTaksNb, sizeof(int), cudaHostAllocMapped);
     memset(flag, 0, flagBytes);
+    memset(finTaksNb, 0, sizeof(int));
 
     cudaStreamCreate(&streamHd);
-    // cudaStreamCreate(&streamDh);
+    cudaStreamCreate(&streamDh);
     cudaStreamCreate(&streamKernel);
 
     cudaHostGetDevicePointer<struct Task>(&hostList, (void *)list, 0);
     cudaHostGetDevicePointer<int>(&hostFlag, (void *)flag, 0);
-    cudaHostGetDevicePointer<struct Task>(&hostResult, (void *)result, 0);
+    cudaHostGetDevicePointer<int>(&hostFinTaksNb, (void *)finTaksNb, 0);
 }
 
 /*清理*/
 void free()
 {
     cudaStreamDestroy(streamHd);
-    // cudaStreamDestroy(streamDh);
+    cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
 
     cudaFreeHost(list);
     cudaFreeHost(flag);
-    cudaFreeHost(result);
+    cudaFreeHost(finTaksNb);
 }
 
 int main()
@@ -176,7 +185,7 @@ int main()
 
     pthread_t cpu_pro, cpu_sav;
     pthread_create(&cpu_sav, NULL, cpu_saver, NULL);
-    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(hostList, hostFlag, hostResult);
+    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(hostList, hostFlag, hostFinTaksNb);
     pthread_create(&cpu_pro, NULL, cpu_producer, NULL);
 
     pthread_join(cpu_pro, NULL);
