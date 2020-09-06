@@ -23,11 +23,12 @@ c.遇到结束符，栈顶保存最终结果。
 #include <stdio.h>
 #include <stdlib.h>
 #include <stack>
+#include <queue>
 
 #define MAX_LENGTH 200
 
 static std::stack<char> symbol;
-static std::stack<char> postfix;
+static std::queue<char> postfix;
 static std::stack<double> number;
 
 double cal(double l, double r, char op)
@@ -77,6 +78,7 @@ void infixTosymbol(char *infix, int charNb)
             end[0] = '\0';
             number.push(atof(start));
             end[0] = temp;
+            i--;
         }
         else if (infix[i] == '(')
         {
@@ -146,26 +148,23 @@ double caculator()
     }
     infixTosymbol(infix, charNb);
 
-    while (number.empty() == false)
-    {
-        printf("%lf ", number.top());
-        number.pop();
-    }
-    printf("\n");
-
     while (postfix.empty() == false)
     {
-        printf("%c ", postfix.top());
+        char op = postfix.front();
+        double r = number.top();
+        number.pop();
+        double l = number.top();
+        number.pop();
+        double result = cal(l, r, op);
+        number.push(result);
         postfix.pop();
     }
-    printf("\n");
-
-    return result;
+    return number.top();
 }
 
 int main()
 {
-    caculator();
+    printf("%lf\n", caculator());
     return 0;
 }
 /*
