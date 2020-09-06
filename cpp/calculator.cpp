@@ -1,123 +1,16 @@
-#include <stdio.h>
-#include <stack>
-#include <string>
-// #include <cstring>
+/*
+中缀表达式  运算符在两个数字之间
+后缀表达式  运算符在两个数字后面
 
-class Calculator
-{
-    /*运算符栈*/
-    std::stack<char> oper;
-    /*数据栈*/
-    std::stack<char> data;
-    double v, lh, rh; //结果、左运算符、右运算符
-    /*操作符*/
-    char op;
+1.中缀表达式->后缀表达式
+a.从左往右遍历，遇到操作数直接输出。
+b.遇到左括号直接入栈，入栈后优先级降到最低，确保运算符正常入栈。
+c.遇到右括号不断弹出并输出栈顶运算符直到遇到左括号，左括号弹出但不输出。
+d.遇到运算符，将该运算符与栈顶运算符进行比较，
+如果优先级高于栈顶运算符则直接入栈
+如果优先级低于或等于栈顶运算符则将栈顶运算符弹出并输出，然后比较新的栈顶运算符
+直到优先级高于栈顶运算符或者栈空，再将该运算符入栈。
+e.遇到结束符，则弹出并输出栈中所有运算符。
 
-public:
-    double calinput() //读取计数表达式直到结束
-    {
-        do
-        {
-            readdata();     //读取数据
-            skipspace();    //跳过空白字符
-        } while (readop()); //读取运算符
-
-        calremain();
-        return v;
-    }
-
-    void readdata() //读取数据可能遇到'('
-    {
-        while (!(cin >> v)) //读取失败因该是‘（’
-        {
-            cin.clear();
-            cin >> op; //读取‘（’
-            if (op != '(')
-            {
-                throw string("在该出现数值得地方遇到了") + op;
-            }
-            oper.push(op);
-        }
-        data.push(v);
-    }
-
-    void skipspace()
-    {
-        while (cin.peek() == ' ' || cin.peek() == '\t')
-        {
-            cin.ignore();
-        }
-    }
-
-    bool readop() //读取运算符可能遇到‘)’或者‘\n’
-    {
-        while ((op = cin.get()) == ')')
-        {
-            while (oper.top() != '(') //栈中的‘（’
-            {
-                rh = data.top();
-                data.pop(); //从栈中取右操作数
-                lh = data.top();
-                data.pop();                         //从栈中取左操作数
-                data.push(cal(lh, oper.top(), rh)); //计算结果入栈
-                oper.pop();
-            }
-            oper.pop(); //丢弃栈中的‘（’
-        }
-
-        if (op == '\n')
-            return false;
-        if (strchr("+-*/", op) == NULL)
-        {
-            throw string("无效运算符") + op;
-        }
-
-        while (!oper.empty() && oper.top() != '(' && prior(op, oper.top()))
-        {
-            rh = data.top();
-            data.pop(); //从栈中取右操作数
-            lh = data.top();
-            data.pop();                         //从栈中取左操作数
-            data.push(cal(lh, oper.top(), rh)); //计算结果入栈
-            oper.pop();
-        }
-        oper.push(op); //预算符入栈
-        return true;
-    }
-
-    void calremain()
-    {
-        while (!oper.empty())
-        {
-            rh = data.top();
-            data.pop(); //从栈中取右操作数
-            lh = data.top();
-            data.pop();                         //从栈中取左操作数
-            data.push(cal(lh, oper.top(), rh)); //计算结果入栈
-            oper.pop();
-        }
-        if (data.size() != 1)
-        {
-            throw string("无效表达式");
-        }
-        v = data.top();
-        data.pop();
-    }
-
-    double cal(double lh, char op, double rh)
-    {
-        return op == '+' ? lh + rh : op == '-' ? lh - rh : op == '*' ? lh * rh : lh / rh;
-    }
-
-    bool prior(char op1, char op2) // op1的优先级是否高于op2
-    {
-        return op1 != '+' && op1 != '-' && op2 != '*' && op2 != '/';
-    }
-};
-
-int main()
-{
-    Calculator e;
-    printf("", e.calinput());
-    return 0;
-}
+2.计算后缀表达式 
+*/
