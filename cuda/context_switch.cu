@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <cuda_runtime.h>
-#include <unistd.h>
-
 /*
 【warp上下文切换】微观
 在CPU上，上下文切换是由内核中的一个名为“调度器”的函数在软件中完成的。
@@ -27,44 +22,125 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 幂等性：在编程中一个幂等操作的特点是其任意多次执行所产生的影响均与一次执行的影响相同。
 使用相同参数重复执行能获得相同结果。不会影响系统状态，也不用担心重复执行会对系统造成改变。
 */
+#include <stdio.h>
+#include <assert.h>
+#include <cuda_runtime.h>
+#include <unistd.h>
 
-__global__ void contextSwitch()
+static int NUM_OF_TASK = 2;
+
+static int NUM_OF_SM = 0;
+static int WARP_SIZE = 0;
+static int THREADS_PER_BLOCK = 0;
+static int BLOCKS_PER_SM = 0;
+
+/*
+1表示特定任务在特定SM上执行
+0表示特定任务没有在特定SM上执行
+-1表示特定SM上的特定任务将被抢占
+*/
+static int *state;
+static int *hostState;
+
+void init(int gpu)
 {
-    int threadId = threadIdx.x;
-    while (hostFinTaksNb[0] != TASK_NB)
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, gpu);
+    NUM_OF_SM = deviceProp.multiProcessorCount;
+    printf("NUM_OF_SM-%d\n", NUM_OF_SM);
+    WARP_SIZE = deviceProp.warpSize;
+    printf("WARP_SIZE-%d\n", WARP_SIZE);
+    THREADS_PER_BLOCK = deviceProp.maxThreadsPerBlock;
+    printf("THREADS_PER_BLOCK-%d\n", THREADS_PER_BLOCK);
+    BLOCKS_PER_SM = deviceProp.maxThreadsPerMultiProcessor / THREADS_PER_BLOCK;
+    printf("BLOCKS_PER_SM-%d\n", BLOCKS_PER_SM);
+
+    int bytes = sizeof(int) * NUM_OF_TASK * NUM_OF_SM;
+    cudaMallocHost((void **)&state, bytes, cudaHostAllocMapped);
+    memset(state, 0, bytes);
+    cudaHostGetDevicePointer<int>(&hostState, (void *)state, 0);
+}
+
+static __device__ __inline__ int getSmid()
+{
+    int smId;
+    asm volatile("mov.u32 %0, %%smid;"
+                 : "=r"(smId));
+    return smId;
+}
+
+__global__ void task1(int smId, volatile int *hostState, int warpSize, int nbSm)
+{
+    if (smId == getSmid())
     {
-        __syncthreads();
-        bool temp = false;
-        while (hostFlag[0] == hostFlag[1])
+        while (1)
         {
-            if (threadId == 0)
+            if (hostState[smId] == -1)
             {
-                if (temp == false)
-                {
-                    printf("[gpu] 队列是空的\n");
-                    temp = true;
-                }
+                /*执行返回时需要同步所有线程*/
+                return;
             }
-        }
-        int cur = hostFlag[0];
-        int task = hostList[cur].pData[threadId];
-        hostList[cur].pResult[threadId] = pow(task, 2) - task;
-        __syncthreads();
-        if (threadId == 0)
-        {
-            printf("[gpu] %d处的任务%d处理完成\n", cur, hostList[cur].id);
-            hostList[cur].isSave = true;
-            while (hostList[cur].isSave == true)
+            else
             {
+                printf("执行任务1\n");
             }
         }
     }
 }
 
+__global__ void task2(int smId, volatile int *hostState, int warpSize, int nbSm)
+{
+    if (smId == getSmid())
+    {
+        while (1)
+        {
+            if (hostState[nbSm + smId] == -1)
+            {
+                return;
+            }
+            else
+            {
+                printf("执行任务2\n");
+            }
+        }
+    }
+}
+
+void contextSwitch1(int smId)
+{
+}
+
+void contextSwitch2(int smId)
+{
+}
+
+void contextSwitch3(int smId, int taskId)
+{
+    assert(smId < NUM_OF_SM);
+    for (int i = 0; i < NUM_OF_TASK; i++)
+    {
+        if (i != taskId && hostState[i * NUM_OF_SM + smId] == 1)
+        {
+            hostState[i * NUM_OF_SM + smId] = -1;
+        }
+    }
+    hostState[taskId * NUM_OF_SM + smId] = 1;
+}
+
 int main()
 {
-    contextSwitch<<<1, WARP_SIZE, 0, streamKernel>>>();
+    init(0);
+    int smId = 1;
+    contextSwitch3(smId, 0);
+    task1<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
+    sleep(3);
+    contextSwitch3(smId, 1);
+    task2<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
+    sleep(5);
+    contextSwitch3(smId, 0);
+    task1<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
     cudaDeviceSynchronize();
+    cudaFreeHost(state);
     return 0;
 }
 /*
