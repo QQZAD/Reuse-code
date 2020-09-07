@@ -22,13 +22,14 @@ c.遇到结束符，栈顶保存最终结果。
 */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stack>
-#include <queue>
 
 #define MAX_LENGTH 200
+static char infix[MAX_LENGTH];
+static char postfix[MAX_LENGTH];
 
 static std::stack<char> symbol;
-static std::queue<char> postfix;
 static std::stack<double> number;
 
 double cal(double l, double r, char op)
@@ -62,8 +63,9 @@ int getPrioripostfix(char c)
     }
 }
 
-void infixTosymbol(char *infix, int charNb)
+void infixToPostfix(char *infix, int charNb)
 {
+    char *p = postfix;
     for (int i = 0; i < charNb; i++)
     {
         if (infix[i] >= 48 && infix[i] <= 57)
@@ -76,7 +78,9 @@ void infixTosymbol(char *infix, int charNb)
             char *end = infix + i;
             char temp = end[0];
             end[0] = '\0';
-            number.push(atof(start));
+            memcpy(p, start, strlen(start));
+            p += strlen(start);
+            *(p++) = ',';
             end[0] = temp;
             i--;
         }
@@ -88,7 +92,8 @@ void infixTosymbol(char *infix, int charNb)
         {
             while (symbol.top() != '(')
             {
-                postfix.push(symbol.top());
+                *(p++) = symbol.top();
+                *(p++) = ',';
                 symbol.pop();
             }
             symbol.pop();
@@ -109,33 +114,37 @@ void infixTosymbol(char *infix, int charNb)
                 }
                 else
                 {
-                    while (1)
+                    while (symbol.empty() == false)
                     {
                         top = getPrioripostfix(symbol.top());
-                        if (symbol.empty() == true || curr > top)
+                        if (curr > top)
                         {
                             break;
                         }
-                        postfix.push(symbol.top());
+                        *(p++) = symbol.top();
+                        *(p++) = ',';
                         symbol.pop();
                     }
+                    symbol.push(infix[i]);
                 }
             }
         }
     }
     while (symbol.empty() == false)
     {
-        postfix.push(symbol.top());
+        *(p++) = symbol.top();
+        *(p++) = ',';
         symbol.pop();
     }
+    p[0] = '\0';
 }
 
-double caculator()
+void caculator()
 {
     double result = 0;
-    char infix[MAX_LENGTH];
     int charNb = 0;
     char c;
+    printf("输入中缀表达式，按回车结束：\n");
     while (1)
     {
         scanf("%c", &c);
@@ -146,25 +155,39 @@ double caculator()
         }
         infix[charNb++] = c;
     }
-    infixTosymbol(infix, charNb);
-
-    while (postfix.empty() == false)
+    infixToPostfix(infix, charNb);
+    printf("得到后缀表达式：\n%s\n", postfix);
+    charNb = strlen(postfix);
+    for (int i = 0; i < charNb; i++)
     {
-        char op = postfix.front();
-        double r = number.top();
-        number.pop();
-        double l = number.top();
-        number.pop();
-        double result = cal(l, r, op);
-        number.push(result);
-        postfix.pop();
+        if (postfix[i] >= 48 && postfix[i] <= 57)
+        {
+            char *start = postfix + i;
+            while (postfix[i] != ',')
+            {
+                i++;
+            }
+            char *end = postfix + i;
+            end[0] = '\0';
+            number.push(atof(start));
+            end[0] = ',';
+            i--;
+        }
+        else if (postfix[i] != ',')
+        {
+            double r = number.top();
+            number.pop();
+            double l = number.top();
+            number.pop();
+            number.push(cal(l, r, postfix[i]));
+        }
     }
-    return number.top();
+    printf("计算结果：%lf\n", number.top());
 }
 
 int main()
 {
-    printf("%lf\n", caculator());
+    caculator();
     return 0;
 }
 /*
