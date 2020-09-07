@@ -47,19 +47,19 @@ double cal(double l, double r, char op)
     }
 }
 
-int getPrioripostfix(char c)
+int getStackPriority(char c)
 {
-    if (c == '+' || c == '-')
+    if (c == '*' || c == '/')
     {
-        return 0;
+        return 2;
     }
-    else if (c == '*' || c == '/')
+    else if (c == '+' || c == '-')
     {
         return 1;
     }
     else if (c == '(')
     {
-        return -1;
+        return 0;
     }
 }
 
@@ -106,8 +106,8 @@ void infixToPostfix(char *infix, int charNb)
             }
             else
             {
-                int curr = getPrioripostfix(infix[i]);
-                int top = getPrioripostfix(symbol.top());
+                int curr = getStackPriority(infix[i]);
+                int top = getStackPriority(symbol.top());
                 if (curr > top)
                 {
                     symbol.push(infix[i]);
@@ -116,7 +116,7 @@ void infixToPostfix(char *infix, int charNb)
                 {
                     while (symbol.empty() == false)
                     {
-                        top = getPrioripostfix(symbol.top());
+                        top = getStackPriority(symbol.top());
                         if (curr > top)
                         {
                             break;
