@@ -44,7 +44,7 @@ static cudaStream_t streamDh;
 static cudaStream_t streamKernel;
 
 /*主机端生产者*/
-void *cpu_producer(void *argc)
+void *cpuProducer(void *argc)
 {
     for (int i = 1; i <= TASK_NB; i++)
     {
@@ -80,7 +80,7 @@ void *cpu_producer(void *argc)
 }
 
 /*设备端消费者*/
-__global__ void gpu_consumer(struct Task *hostList, int *hostFlag, int *hostFinTaksNb)
+__global__ void gpuConsumer(struct Task *hostList, int *hostFlag, int *hostFinTaksNb)
 {
     int threadId = threadIdx.x;
     while (hostFinTaksNb[0] != TASK_NB)
@@ -114,7 +114,7 @@ __global__ void gpu_consumer(struct Task *hostList, int *hostFlag, int *hostFinT
 }
 
 /*保存结果到文件*/
-void *cpu_saver(void *argc)
+void *cpuSaver(void *argc)
 {
     while (finTaksNb[0] != TASK_NB)
     {
@@ -184,9 +184,9 @@ int main()
     init();
 
     pthread_t cpu_pro, cpu_sav;
-    pthread_create(&cpu_sav, NULL, cpu_saver, NULL);
-    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>(hostList, hostFlag, hostFinTaksNb);
-    pthread_create(&cpu_pro, NULL, cpu_producer, NULL);
+    pthread_create(&cpu_sav, NULL, cpuSaver, NULL);
+    gpuConsumer<<<1, WARP_SIZE, 0, streamKernel>>>(hostList, hostFlag, hostFinTaksNb);
+    pthread_create(&cpu_pro, NULL, cpuProducer, NULL);
 
     pthread_join(cpu_pro, NULL);
     cudaDeviceSynchronize();

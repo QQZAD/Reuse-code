@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 /*
+【warp上下文切换】
 在CPU上，上下文切换是由内核中的一个名为“调度器”的函数在软件中完成的。
 调度器是普通代码，是处理器必须运行的机器指令序列，而运行调度器所花费的时间是没有用于“有用”工作的时间。
 一旦线程块在SM上启动，它的所有warp都将驻留，直到它们全部退出内核。GPU没有传统意义上的上下文切换。
@@ -13,9 +14,18 @@ SM更有可能从不同的warp而不是从相同的warp在一行中发出两条�
 当一个任务遇到"pipeline stall"时，另一个任务可以利用pipeline阶段，否则这些阶段将是空闲的。
 这被称为“延迟隐藏”——一个任务的延迟被其他任务的进度所隐藏。
 GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
+
+【任务上下文切换】
+不同的kernel函数共享GPU上同一个SM，针对不同应用场景的三种抢占策略
+1.把一个SM上正在运行的thread block(TB)的上下文保存到内存，启动一个新的kernel函数抢占当前SM。
+2.等待一个SM上正在运行的kernel函数的所有TB结束，启动一个新的kernel函数抢占当前SM。
+3.对于具有幂等性的kernel函数，即使强制结束当前正在运行的TB，重启后也不会对kernel函数的结果产生影响，不需要保存任何上下文信息。
+
+幂等性：在编程中一个幂等操作的特点是其任意多次执行所产生的影响均与一次执行的影响相同。
+使用相同参数重复执行能获得相同结果。不会影响系统状态，也不用担心重复执行会对系统造成改变。
 */
 
-__global__ void gpu_consumer()
+__global__ void context_switch()
 {
     int threadId = threadIdx.x;
     while (hostFinTaksNb[0] != TASK_NB)
@@ -50,7 +60,7 @@ __global__ void gpu_consumer()
 
 int main()
 {
-    gpu_consumer<<<1, WARP_SIZE, 0, streamKernel>>>();
+    context_switch<<<1, WARP_SIZE, 0, streamKernel>>>();
     cudaDeviceSynchronize();
     return 0;
 }
