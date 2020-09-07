@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <bits/stdint-uintn.h>
 
 #define PRINTF_TO_FILE
 
@@ -78,6 +79,21 @@ int getRand(int a, int b)
 extern void checkWorkDir();
 extern void backWorkDir();
 
+struct alignas(4) stc
+{
+    /*
+    默认2个字节对齐,必须是2的倍数
+    结构体指针和uint8_t指针的转换受到字节对齐和结构体内变量定义先后顺序的影响
+    */
+    unsigned int a : 4; //占用4bit，来自字节对齐产生的多余空间
+    unsigned int b : 4; //占用4bit，来自字节对齐产生的多余空间
+    uint8_t c;
+    uint8_t d;
+    uint8_t e;
+    uint16_t f;
+    uint16_t g;
+};
+
 int main()
 {
     // strCat(5);
@@ -86,6 +102,7 @@ int main()
     // redirectPrintf();
     checkWorkDir();
     backWorkDir();
+    printf("%d\n", sizeof(stc));
     return 0;
 }
 /*
