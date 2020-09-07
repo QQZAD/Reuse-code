@@ -25,7 +25,7 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 使用相同参数重复执行能获得相同结果。不会影响系统状态，也不用担心重复执行会对系统造成改变。
 */
 
-__global__ void context_switch()
+__global__ void contextSwitch()
 {
     int threadId = threadIdx.x;
     while (hostFinTaksNb[0] != TASK_NB)
@@ -60,7 +60,7 @@ __global__ void context_switch()
 
 int main()
 {
-    context_switch<<<1, WARP_SIZE, 0, streamKernel>>>();
+    contextSwitch<<<1, WARP_SIZE, 0, streamKernel>>>();
     cudaDeviceSynchronize();
     return 0;
 }
