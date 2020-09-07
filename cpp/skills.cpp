@@ -102,7 +102,6 @@ int main()
     // redirectPrintf();
     checkWorkDir();
     backWorkDir();
-    printf("%d\n", sizeof(stc));
     return 0;
 }
 /*
