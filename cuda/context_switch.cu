@@ -12,11 +12,11 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 
 【任务上下文切换】宏观
 不同的kernel函数共享GPU上同一个SM，针对不同应用场景的三种抢占策略
-1.把一个SM上正在运行的thread block(TB)的上下文保存到内存，启动一个新的kernel函数抢占当前SM。
+1.Context switching：把一个SM上正在运行的thread block(TB)的上下文保存到内存，启动一个新的kernel函数抢占当前SM。
 其切换开销对吞吐量影响！中！，对延迟影响！中！。
-2.等待一个SM上正在运行的kernel函数的所有TB结束，启动一个新的kernel函数抢占当前SM。
+2.Draining：等待一个SM上正在运行的kernel函数的所有TB结束，启动一个新的kernel函数抢占当前SM。
 其切换开销对吞吐量影响！小！，对延迟影响！大！。
-3.对于具有幂等性的kernel函数，即使强制结束当前正在运行的TB，重启后也不会对kernel函数的结果产生影响，不需要保存任何上下文信息。
+3.Flushing：对于具有幂等性的kernel函数，即使强制结束当前正在运行的TB，重启后也不会对kernel函数的结果产生影响，不需要保存任何上下文信息。
 其切换开销对吞吐量影响！大！（当抢占发生在任务即将结束时），对延迟影响！很小！。
 
 幂等性：在编程中一个幂等操作的特点是其任意多次执行所产生的影响均与一次执行的影响相同。
@@ -26,11 +26,16 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 #include <assert.h>
 #include <cuda_runtime.h>
 #include <unistd.h>
+#include <pthread.h>
 
-static int NUM_OF_TASK = 2;
+#define MAX_SIZE 999999
+#define NUM_OF_TASK 2
+#define TASK1 0
+#define TASK2 1
+
+#define GET_TASK(TASK_ID) (TASK_ID == TASK1 ? task1 : task2)
 
 static int NUM_OF_SM = 0;
-static int WARP_SIZE = 0;
 static int THREADS_PER_BLOCK = 0;
 static int BLOCKS_PER_SM = 0;
 
@@ -42,14 +47,17 @@ static int BLOCKS_PER_SM = 0;
 static int *state;
 static int *hostState;
 
+// static int *lastTask;
+// static int *hostLastTask;
+
+void (*ptask)(volatile int *hostState, int smId, int nbSm);
+
 void init(int gpu)
 {
     cudaDeviceProp deviceProp;
     cudaGetDeviceProperties(&deviceProp, gpu);
     NUM_OF_SM = deviceProp.multiProcessorCount;
     printf("NUM_OF_SM-%d\n", NUM_OF_SM);
-    WARP_SIZE = deviceProp.warpSize;
-    printf("WARP_SIZE-%d\n", WARP_SIZE);
     THREADS_PER_BLOCK = deviceProp.maxThreadsPerBlock;
     printf("THREADS_PER_BLOCK-%d\n", THREADS_PER_BLOCK);
     BLOCKS_PER_SM = deviceProp.maxThreadsPerMultiProcessor / THREADS_PER_BLOCK;
@@ -57,8 +65,19 @@ void init(int gpu)
 
     int bytes = sizeof(int) * NUM_OF_TASK * NUM_OF_SM;
     cudaMallocHost((void **)&state, bytes, cudaHostAllocMapped);
+    // cudaMallocHost((void **)&lastTask, bytes, cudaHostAllocMapped);
     memset(state, 0, bytes);
+    // for (int i = 0; i < bytes / sizeof(int); i++)
+    // {
+    //     lastTask[i] = -1;
+    // }
     cudaHostGetDevicePointer<int>(&hostState, (void *)state, 0);
+    // cudaHostGetDevicePointer<int>(&hostLastTask, (void *)lastTask, 0);
+}
+
+void free()
+{
+    cudaFreeHost(state);
 }
 
 static __device__ __inline__ int getSmid()
@@ -69,79 +88,137 @@ static __device__ __inline__ int getSmid()
     return smId;
 }
 
-__global__ void task1(int smId, volatile int *hostState, int warpSize, int nbSm)
+__global__ void task1(volatile int *hostState, int smId, int nbSm)
 {
     if (smId == getSmid())
     {
-        while (1)
+        int threadId = threadIdx.x;
+        int instanceId = TASK1 * nbSm + smId;
+        if (threadId == 0)
         {
-            if (hostState[smId] == -1)
+            printf("正在执行任务1\n");
+        }
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            if (hostState[instanceId] == -1)
             {
                 /*执行返回时需要同步所有线程*/
                 return;
             }
             else
             {
-                printf("执行任务1\n");
+                /*执行任务1*/
             }
         }
+        if (threadId == 0)
+        {
+            printf("任务1执行完成\n");
+        }
+        hostState[instanceId] = 0;
     }
 }
 
-__global__ void task2(int smId, volatile int *hostState, int warpSize, int nbSm)
+__global__ void task2(volatile int *hostState, int smId, int nbSm)
 {
     if (smId == getSmid())
     {
-        while (1)
+        int threadId = threadIdx.x;
+        int instanceId = TASK2 * nbSm + smId;
+        if (threadId == 0)
         {
-            if (hostState[nbSm + smId] == -1)
+            printf("正在执行任务2\n");
+        }
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            if (hostState[instanceId] == -1)
             {
                 /*执行返回时需要同步所有线程*/
                 return;
             }
             else
             {
-                printf("执行任务2\n");
+                /*执行任务2*/
             }
         }
+        if (threadId == 0)
+        {
+            printf("任务2执行完成\n");
+        }
+        hostState[instanceId] = 0;
     }
 }
 
-void contextSwitch1(int smId)
+void contextSwitch(int smId, int taskId)
 {
 }
 
-void contextSwitch2(int smId)
-{
-}
-
-void contextSwitch3(int smId, int taskId)
+void draining(int smId, int taskId)
 {
     assert(smId < NUM_OF_SM);
+    int instanceId = taskId * NUM_OF_SM + smId;
+    for (int i = 0; i < NUM_OF_TASK; i++)
+    {
+        while (hostState[i * NUM_OF_SM + smId] != 0)
+        {
+        }
+    }
+    hostState[instanceId] = 1;
+    ptask = GET_TASK(taskId);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+}
+
+void *flushingTail(void *argc)
+{
+    int lastTask = *((int *)argc);
+    while (hostState[instanceId] != 0)
+    {
+    }
+    hostState[lastTask * NUM_OF_SM + smId] = 1;
+    ptask = GET_TASK(lastTask);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    return NULL;
+}
+
+void flushing(int smId, int taskId)
+{
+    assert(smId < NUM_OF_SM);
+    int lastTask = -1;
+    int instanceId = taskId * NUM_OF_SM + smId;
+    pthread_t tail;
     for (int i = 0; i < NUM_OF_TASK; i++)
     {
         if (i != taskId && hostState[i * NUM_OF_SM + smId] == 1)
         {
+            lastTask = i;
             hostState[i * NUM_OF_SM + smId] = -1;
         }
     }
-    hostState[taskId * NUM_OF_SM + smId] = 1;
+    hostState[instanceId] = 1;
+    ptask = GET_TASK(taskId);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    if (lastTask != -1)
+    {
+        pthread_create(&tail, NULL, flushingTail, NULL);
+        // while (hostState[instanceId] != 0)
+        // {
+        // }
+        // hostState[lastTask * NUM_OF_SM + smId] = 1;
+        // ptask = GET_TASK(lastTask);
+        // ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    }
 }
 
 int main()
 {
     init(0);
     int smId = 1;
-    contextSwitch3(smId, 0);
-    task1<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
-    sleep(3);
-    contextSwitch3(smId, 1);
-    task2<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
-    sleep(5);
-    contextSwitch3(smId, 0);
-    task1<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(smId, hostState, WARP_SIZE, NUM_OF_SM);
+    flushing(smId, TASK1);
+    sleep(1);
+    flushing(smId, TASK2);
+    sleep(1);
+    flushing(smId, TASK1);
     cudaDeviceSynchronize();
-    cudaFreeHost(state);
+    free();
     return 0;
 }
 /*
