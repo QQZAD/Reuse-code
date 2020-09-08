@@ -49,19 +49,10 @@ static int BLOCKS_PER_SM = 0;
 static int *state;
 static int *hostState;
 
-struct flush
-{
-    std::stack<int> lastTask;
-    int instanceId;
-    void set(int _lastTask, int _instanceId)
-    {
-        lastTask.push(_lastTask);
-        instanceId = _instanceId;
-    }
-};
-static struct flush *flushArgc;
+static int smId = 0;
+static int taskId = 0;
 
-static pthread_mutex_t *lock;
+static pthread_mutex_t lock;
 
 void (*ptask)(volatile int *hostState, int smId, int nbSm);
 
@@ -80,23 +71,13 @@ void init(int gpu)
     cudaMallocHost((void **)&state, bytes, cudaHostAllocMapped);
     memset(state, 0, bytes);
     cudaHostGetDevicePointer<int>(&hostState, (void *)state, 0);
-    flushArgc = (struct flush *)malloc(sizeof(struct flush) * NUM_OF_SM);
-    lock = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * NUM_OF_SM);
-    for (int i = 0; i < NUM_OF_SM; i++)
-    {
-        pthread_mutex_init(&(lock[i]), NULL);
-    }
+    pthread_mutex_init(&lock, NULL);
 }
 
 void free()
 {
     cudaFreeHost(state);
-    free(flushArgc);
-    for (int i = 0; i < NUM_OF_SM; i++)
-    {
-        pthread_mutex_destroy(&(lock[i]));
-    }
-    free(lock);
+    pthread_mutex_destroy(&lock);
 }
 
 static __device__ __inline__ int getSmid()
@@ -197,76 +178,76 @@ __global__ void task3(volatile int *hostState, int smId, int nbSm)
     }
 }
 
-void contextSwitch(int smId, int taskId)
+void contextSwitch(int _smId, int _taskId)
 {
 }
 
-void draining(int smId, int taskId)
+void draining(int _smId, int _taskId)
 {
-    assert(smId < NUM_OF_SM);
-    int instanceId = taskId * NUM_OF_SM + smId;
+    assert(_smId < NUM_OF_SM);
+    int instanceId = _taskId * NUM_OF_SM + _smId;
     for (int i = 0; i < NUM_OF_TASK; i++)
     {
-        while (hostState[i * NUM_OF_SM + smId] != 0)
+        while (hostState[i * NUM_OF_SM + _smId] != 0)
         {
         }
     }
     hostState[instanceId] = 1;
-    ptask = GET_TASK(taskId);
-    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    ptask = GET_TASK(_taskId);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
 }
 
-void *flushingTail(void *argc)
+void *flushingThread(void *argc)
 {
-    int smId = arg->smId;
-    std::stack<int> lt = arg->lastTask;
-    pthread_mutex_lock(&lock[smId]);
-    int lastTask = lt.top();
-    lt.pop();
-    pthread_mutex_unlock(&lock[smId]);
-    int instanceId = flushArgc[smId].instanceId;
-    while (hostState[instanceId] != 0)
+    pthread_mutex_lock(&lock);
+    int _smId = smId;
+    int _taskId = taskId;
+    pthread_mutex_unlock(&lock);
+    int lastTask = -1;
+    int instanceId = _taskId * NUM_OF_SM + _smId;
+    for (int i = 0; i < NUM_OF_TASK; i++)
     {
+        if (i != _taskId && hostState[i * NUM_OF_SM + _smId] == 1)
+        {
+            lastTask = i;
+            hostState[lastTask * NUM_OF_SM + _smId] = -1;
+        }
     }
-    hostState[lastTask * NUM_OF_SM + smId] = 1;
-    ptask = GET_TASK(lastTask);
-    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    hostState[instanceId] = 1;
+    ptask = GET_TASK(_taskId);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
+    printf("%d\n", lastTask);
+    if (lastTask != -1)
+    {
+        while (hostState[instanceId] != 0)
+        {
+        }
+        hostState[lastTask * NUM_OF_SM + _smId] = 1;
+        ptask = GET_TASK(lastTask);
+        ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
+    }
     return NULL;
 }
 
-void flushing(int smId, int taskId)
+void flushing(int _smId, int _taskId)
 {
-    assert(smId < NUM_OF_SM);
-    int lastTask = -1;
-    int instanceId = taskId * NUM_OF_SM + smId;
-    pthread_t tail;
-    for (int i = 0; i < NUM_OF_TASK; i++)
-    {
-        if (i != taskId && hostState[i * NUM_OF_SM + smId] == 1)
-        {
-            lastTask = i;
-            hostState[i * NUM_OF_SM + smId] = -1;
-        }
-    }
-    hostState[instanceId] = 1;
-    if (lastTask != -1)
-    {
-        flushArgc[smId].set(lastTask, instanceId);
-        pthread_create(&tail, NULL, flushingTail, NULL, );
-    }
-    ptask = GET_TASK(taskId);
-    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+    assert(_smId < NUM_OF_SM);
+    pthread_mutex_lock(&lock);
+    smId = _smId;
+    taskId = _taskId;
+    pthread_mutex_unlock(&lock);
+    pthread_t ft;
+    pthread_create(&ft, NULL, flushingThread, NULL);
 }
 
 int main()
 {
     init(0);
-    int smId = 1;
-    flushing(smId, TASK1);
+    flushing(1, TASK1);
     sleep(1);
-    flushing(smId, TASK2);
-    sleep(1);
-    flushing(smId, TASK3);
+    flushing(1, TASK2);
+    // sleep(1);
+    // flushing(1, TASK3);
     cudaDeviceSynchronize();
     free();
     return 0;
