@@ -27,13 +27,15 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 #include <cuda_runtime.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stack>
 
 #define MAX_SIZE 999999
-#define NUM_OF_TASK 2
+#define NUM_OF_TASK 3
 #define TASK1 0
 #define TASK2 1
+#define TASK3 2
 
-#define GET_TASK(TASK_ID) (TASK_ID == TASK1 ? task1 : task2)
+#define GET_TASK(TASK_ID) (TASK_ID == TASK1 ? task1 : (TASK_ID == TASK2 ? task2 : task3))
 
 static int NUM_OF_SM = 0;
 static int THREADS_PER_BLOCK = 0;
@@ -47,8 +49,19 @@ static int BLOCKS_PER_SM = 0;
 static int *state;
 static int *hostState;
 
-// static int *lastTask;
-// static int *hostLastTask;
+struct flush
+{
+    std::stack<int> lastTask;
+    int instanceId;
+    void set(int _lastTask, int _instanceId)
+    {
+        lastTask.push(_lastTask);
+        instanceId = _instanceId;
+    }
+};
+static struct flush *flushArgc;
+
+static pthread_mutex_t *lock;
 
 void (*ptask)(volatile int *hostState, int smId, int nbSm);
 
@@ -65,19 +78,25 @@ void init(int gpu)
 
     int bytes = sizeof(int) * NUM_OF_TASK * NUM_OF_SM;
     cudaMallocHost((void **)&state, bytes, cudaHostAllocMapped);
-    // cudaMallocHost((void **)&lastTask, bytes, cudaHostAllocMapped);
     memset(state, 0, bytes);
-    // for (int i = 0; i < bytes / sizeof(int); i++)
-    // {
-    //     lastTask[i] = -1;
-    // }
     cudaHostGetDevicePointer<int>(&hostState, (void *)state, 0);
-    // cudaHostGetDevicePointer<int>(&hostLastTask, (void *)lastTask, 0);
+    flushArgc = (struct flush *)malloc(sizeof(struct flush) * NUM_OF_SM);
+    lock = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * NUM_OF_SM);
+    for (int i = 0; i < NUM_OF_SM; i++)
+    {
+        pthread_mutex_init(&(lock[i]), NULL);
+    }
 }
 
 void free()
 {
     cudaFreeHost(state);
+    free(flushArgc);
+    for (int i = 0; i < NUM_OF_SM; i++)
+    {
+        pthread_mutex_destroy(&(lock[i]));
+    }
+    free(lock);
 }
 
 static __device__ __inline__ int getSmid()
@@ -148,6 +167,36 @@ __global__ void task2(volatile int *hostState, int smId, int nbSm)
     }
 }
 
+__global__ void task3(volatile int *hostState, int smId, int nbSm)
+{
+    if (smId == getSmid())
+    {
+        int threadId = threadIdx.x;
+        int instanceId = TASK3 * nbSm + smId;
+        if (threadId == 0)
+        {
+            printf("正在执行任务3\n");
+        }
+        for (int i = 0; i < MAX_SIZE; i++)
+        {
+            if (hostState[instanceId] == -1)
+            {
+                /*执行返回时需要同步所有线程*/
+                return;
+            }
+            else
+            {
+                /*执行任务2*/
+            }
+        }
+        if (threadId == 0)
+        {
+            printf("任务3执行完成\n");
+        }
+        hostState[instanceId] = 0;
+    }
+}
+
 void contextSwitch(int smId, int taskId)
 {
 }
@@ -169,7 +218,13 @@ void draining(int smId, int taskId)
 
 void *flushingTail(void *argc)
 {
-    int lastTask = *((int *)argc);
+    int smId = arg->smId;
+    std::stack<int> lt = arg->lastTask;
+    pthread_mutex_lock(&lock[smId]);
+    int lastTask = lt.top();
+    lt.pop();
+    pthread_mutex_unlock(&lock[smId]);
+    int instanceId = flushArgc[smId].instanceId;
     while (hostState[instanceId] != 0)
     {
     }
@@ -194,18 +249,13 @@ void flushing(int smId, int taskId)
         }
     }
     hostState[instanceId] = 1;
-    ptask = GET_TASK(taskId);
-    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
     if (lastTask != -1)
     {
-        pthread_create(&tail, NULL, flushingTail, NULL);
-        // while (hostState[instanceId] != 0)
-        // {
-        // }
-        // hostState[lastTask * NUM_OF_SM + smId] = 1;
-        // ptask = GET_TASK(lastTask);
-        // ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
+        flushArgc[smId].set(lastTask, instanceId);
+        pthread_create(&tail, NULL, flushingTail, NULL, );
     }
+    ptask = GET_TASK(taskId);
+    ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, smId, NUM_OF_SM);
 }
 
 int main()
@@ -216,7 +266,7 @@ int main()
     sleep(1);
     flushing(smId, TASK2);
     sleep(1);
-    flushing(smId, TASK1);
+    flushing(smId, TASK3);
     cudaDeviceSynchronize();
     free();
     return 0;
