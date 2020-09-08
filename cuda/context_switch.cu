@@ -27,20 +27,21 @@ GPU使用上下文切换来隐藏延迟以获得更大的吞吐量。
 #include <cuda_runtime.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <stack>
 
 #define MAX_SIZE 999999
 #define NUM_OF_TASK 3
 #define TASK1 0
 #define TASK2 1
 #define TASK3 2
-
 #define GET_TASK(TASK_ID) (TASK_ID == TASK1 ? task1 : (TASK_ID == TASK2 ? task2 : task3))
 
 static int NUM_OF_SM = 0;
 static int THREADS_PER_BLOCK = 0;
 static int BLOCKS_PER_SM = 0;
 
+static int smId = 0;
+static int taskId = 0;
+static pthread_mutex_t lock;
 /*
 1表示特定任务在特定SM上执行
 0表示特定任务没有在特定SM上执行
@@ -48,11 +49,6 @@ static int BLOCKS_PER_SM = 0;
 */
 static int *state;
 static int *hostState;
-
-static int smId = 0;
-static int taskId = 0;
-
-static pthread_mutex_t lock;
 
 void (*ptask)(volatile int *hostState, int smId, int nbSm);
 
@@ -74,8 +70,15 @@ void init(int gpu)
     pthread_mutex_init(&lock, NULL);
 }
 
-void free()
+void free(pthread_t *th, int nb)
 {
+    for (int i = 0; i < nb; i++)
+    {
+        if (th[i] != 0)
+        {
+            pthread_join(th[i], NULL);
+        }
+    }
     cudaFreeHost(state);
     pthread_mutex_destroy(&lock);
 }
@@ -178,23 +181,31 @@ __global__ void task3(volatile int *hostState, int smId, int nbSm)
     }
 }
 
-void contextSwitch(int _smId, int _taskId)
+pthread_t contextSwitch(int _smId, int _taskId)
 {
+    return 0;
 }
 
-void draining(int _smId, int _taskId)
+pthread_t draining(int _smId, int _taskId)
 {
     assert(_smId < NUM_OF_SM);
     int instanceId = _taskId * NUM_OF_SM + _smId;
+    int lastTask = -1;
     for (int i = 0; i < NUM_OF_TASK; i++)
     {
         while (hostState[i * NUM_OF_SM + _smId] != 0)
         {
+            lastTask = i;
         }
+    }
+    if (lastTask != -1)
+    {
+        printf("draining模式核切换：任务%d->任务%d\n", lastTask + 1, _taskId + 1);
     }
     hostState[instanceId] = 1;
     ptask = GET_TASK(_taskId);
     ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
+    return 0;
 }
 
 void *flushingThread(void *argc)
@@ -213,10 +224,13 @@ void *flushingThread(void *argc)
             hostState[lastTask * NUM_OF_SM + _smId] = -1;
         }
     }
+    if (lastTask != -1)
+    {
+        printf("flushing模式核切换：任务%d->任务%d\n", lastTask + 1, _taskId + 1);
+    }
     hostState[instanceId] = 1;
     ptask = GET_TASK(_taskId);
     ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
-    printf("%d\n", lastTask);
     if (lastTask != -1)
     {
         while (hostState[instanceId] != 0)
@@ -225,11 +239,12 @@ void *flushingThread(void *argc)
         hostState[lastTask * NUM_OF_SM + _smId] = 1;
         ptask = GET_TASK(lastTask);
         ptask<<<NUM_OF_SM, THREADS_PER_BLOCK>>>(hostState, _smId, NUM_OF_SM);
+        printf("flushing模式核切换：任务%d->任务%d\n", _taskId + 1, lastTask + 1);
     }
     return NULL;
 }
 
-void flushing(int _smId, int _taskId)
+pthread_t flushing(int _smId, int _taskId)
 {
     assert(_smId < NUM_OF_SM);
     pthread_mutex_lock(&lock);
@@ -238,18 +253,20 @@ void flushing(int _smId, int _taskId)
     pthread_mutex_unlock(&lock);
     pthread_t ft;
     pthread_create(&ft, NULL, flushingThread, NULL);
+    return ft;
 }
 
 int main()
 {
     init(0);
-    flushing(1, TASK1);
+    pthread_t th[100];
+    th[0] = flushing(1, TASK1);
     sleep(1);
-    flushing(1, TASK2);
-    // sleep(1);
-    // flushing(1, TASK3);
+    th[1] = flushing(1, TASK2);
+    sleep(1);
+    th[2] = flushing(1, TASK3);
     cudaDeviceSynchronize();
-    free();
+    free(th, 3);
     return 0;
 }
 /*
