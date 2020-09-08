@@ -96,6 +96,7 @@ __global__ void task2(int smId, volatile int *hostState, int warpSize, int nbSm)
         {
             if (hostState[nbSm + smId] == -1)
             {
+                /*执行返回时需要同步所有线程*/
                 return;
             }
             else
