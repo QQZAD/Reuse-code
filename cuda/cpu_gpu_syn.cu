@@ -66,6 +66,14 @@ void *cpuProducer(void *argc)
             data[j] = i;
             result[j] = 0;
         }
+        if (list[cur].pData != NULL)
+        {
+            cudaFree(list[cur].pData);
+        }
+        if (list[cur].pResult != NULL)
+        {
+            cudaFree(list[cur].pResult);
+        }
         cudaMalloc((void **)&(list[cur].pData), bytes);
         cudaMalloc((void **)&(list[cur].pResult), bytes);
         cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
