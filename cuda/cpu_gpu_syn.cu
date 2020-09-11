@@ -74,8 +74,15 @@ void *cpuProducer(void *argc)
         /*
         cudaMalloc不是异步调用
         在执行调用之前将同步他们运行的上下文
+        执行cudaMalloc之前应该等待cudaFree执行完毕
         */
+        while (list[cur].pData != NULL)
+        {
+        }
         cudaMalloc((void **)&(list[cur].pData), bytes);
+        while (list[cur].pDevResult != NULL)
+        {
+        }
         cudaMalloc((void **)&(list[cur].pDevResult), bytes);
         cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
         cudaMemcpyAsync(list[cur].pDevResult, list[cur].pHostResult, bytes, cudaMemcpyHostToDevice, streamHd);
