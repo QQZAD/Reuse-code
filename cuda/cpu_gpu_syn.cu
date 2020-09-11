@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 20
+#define TASK_NB 10
 #define WARP_SIZE 32
 #define LIST_SIZE 6 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
@@ -124,6 +124,7 @@ __global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksN
             while (devList[cur].isSave == true)
             {
             }
+            cudaFree(devList[cur].pDevResult);
         }
     }
 }
@@ -153,7 +154,6 @@ void *cpuSaver(void *argc)
         fclose(fp);
         printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
         free(list[cur].pHostResult);
-        // cudaFree(list[cur].pDevResult);
         flag[0] = NEXT_TASK(cur);
         list[cur].isSave = false;
         (finTaksNb[0])++;
@@ -189,14 +189,6 @@ void free()
     cudaStreamDestroy(streamHd);
     cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
-
-    // for (int i = 0; i < LIST_SIZE; i++)
-    // {
-    //     if (list[i].pDevResult != NULL)
-    //     {
-    //         cudaFree(list[i].pDevResult);
-    //     }
-    // }
 
     cudaFreeHost(list);
     cudaFreeHost(flag);
