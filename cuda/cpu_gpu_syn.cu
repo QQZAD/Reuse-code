@@ -65,6 +65,9 @@ void *cpuProducer(void *argc)
         list[cur].nb = rand() % (WARP_SIZE - 1 + 1) + 1;
         int bytes = sizeof(int) * list[cur].nb;
         int *data = (int *)malloc(bytes);
+        while (list[cur].pHostResult != NULL)
+        {
+        }
         list[cur].pHostResult = (int *)malloc(bytes);
         for (int j = 0; j < list[cur].nb; j++)
         {
