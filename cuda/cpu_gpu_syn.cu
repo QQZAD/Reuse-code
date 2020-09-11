@@ -160,8 +160,8 @@ void *cpuSaver(void *argc)
             printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
             free(list[cur].pHostResult);
             list[cur].pHostResult = NULL;
-            flag[0] = NEXT_TASK(cur);
             list[cur].isSave = false;
+            flag[0] = NEXT_TASK(cur);
             (finTaksNb[0])++;
         }
     }
