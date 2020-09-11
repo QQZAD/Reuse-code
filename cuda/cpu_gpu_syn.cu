@@ -66,6 +66,10 @@ void *cpuProducer(void *argc)
             data[j] = i;
             result[j] = 0;
         }
+        /*
+        cudaMalloc和cudaFree不是异步调用
+        在执行调用之前将同步他们运行的上下文
+        */
         if (list[cur].pData != NULL)
         {
             cudaFree(list[cur].pData);
