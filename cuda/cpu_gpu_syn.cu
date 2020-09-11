@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 4
+#define TASK_NB 20
 #define WARP_SIZE 32
 #define LIST_SIZE 6 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
@@ -71,8 +71,15 @@ void *cpuProducer(void *argc)
             data[j] = i;
             list[cur].pHostResult[j] = 0;
         }
+        /*
+        cudaMalloc和cudaFree不是异步调用
+        在执行调用之前将同步他们运行的上下文
+        */
         cudaMalloc((void **)&(list[cur].pData), bytes);
+        // if (list[cur].pDevResult == NULL)
+        // {
         cudaMalloc((void **)&(list[cur].pDevResult), bytes);
+        // }
         cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
         cudaMemcpyAsync(list[cur].pDevResult, list[cur].pHostResult, bytes, cudaMemcpyHostToDevice, streamHd);
         list[cur].id = i;
@@ -84,7 +91,7 @@ void *cpuProducer(void *argc)
 }
 
 /*设备端消费者*/
-__global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksNb, cudaStream_t streamDh)
+__global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksNb)
 {
     int threadId = threadIdx.x;
     while (devFinTaksNb[0] != TASK_NB)
@@ -111,13 +118,8 @@ __global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksN
         __syncthreads();
         if (threadId == 0)
         {
-            int bytes = sizeof(int) * devList[cur].nb;
-            cudaMemcpyAsync(devList[cur].pHostResult, devList[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
-            cudaFree(devList[cur].pData);
-            cudaFree(devList[cur].pDevResult);
-            devList[cur].pData = NULL;
-            devList[cur].pDevResult = NULL;
             printf("[gpu] %d处的任务%d处理完成\n", cur, devList[cur].id);
+            cudaFree(devList[cur].pData);
             devList[cur].isSave = true;
             while (devList[cur].isSave == true)
             {
@@ -135,6 +137,8 @@ void *cpuSaver(void *argc)
         while (list[cur].isSave == false)
         {
         }
+        int bytes = sizeof(int) * list[cur].nb;
+        cudaMemcpyAsync(list[cur].pHostResult, list[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
         FILE *fp = fopen("./result.txt", "a+");
         fprintf(fp, "%d\t", list[cur].id);
         for (int i = 0; i < list[cur].nb; i++)
@@ -147,9 +151,9 @@ void *cpuSaver(void *argc)
         }
         fprintf(fp, "\n");
         fclose(fp);
-        printf("[cpu] 已经保存任务%d的结果\n", list[cur].id);
+        printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
         free(list[cur].pHostResult);
-        list[cur].pHostResult = NULL;
+        // cudaFree(list[cur].pDevResult);
         flag[0] = NEXT_TASK(cur);
         list[cur].isSave = false;
         (finTaksNb[0])++;
@@ -186,6 +190,14 @@ void free()
     cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
 
+    // for (int i = 0; i < LIST_SIZE; i++)
+    // {
+    //     if (list[i].pDevResult != NULL)
+    //     {
+    //         cudaFree(list[i].pDevResult);
+    //     }
+    // }
+
     cudaFreeHost(list);
     cudaFreeHost(flag);
     cudaFreeHost(finTaksNb);
@@ -197,7 +209,7 @@ int main()
 
     pthread_t cpu_pro, cpu_sav;
     pthread_create(&cpu_sav, NULL, cpuSaver, NULL);
-    gpuConsumer<<<1, WARP_SIZE, 0, streamKernel>>>(devList, devFlag, devFinTaksNb, streamDh);
+    gpuConsumer<<<1, WARP_SIZE, 0, streamKernel>>>(devList, devFlag, devFinTaksNb);
     pthread_create(&cpu_pro, NULL, cpuProducer, NULL);
 
     pthread_join(cpu_pro, NULL);
@@ -210,9 +222,9 @@ int main()
     free();
     return 0;
 }
+
 /*
 *vscode的工作目录必须为cuda*
-
 rm -rf cpu_gpu_syn cpu_gpu_syn.o result.txt
 /usr/local/cuda/bin/nvcc -ccbin g++ -I /usr/local/cuda/include -I /usr/local/cuda/samples/common/inc -m64 -g -G -gencode arch=compute_75,code=sm_75 -gencode arch=compute_75,code=compute_75 -o cpu_gpu_syn.o -c cpu_gpu_syn.cu -dc
 /usr/local/cuda/bin/nvcc -ccbin g++ -m64 -g -G -gencode arch=compute_75,code=sm_75 -gencode arch=compute_75,code=compute_75 -o cpu_gpu_syn cpu_gpu_syn.o -L /usr/local/cuda/lib64 -L /usr/local/cuda/samples/common/lib
