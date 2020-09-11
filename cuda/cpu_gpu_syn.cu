@@ -138,29 +138,32 @@ void *cpuSaver(void *argc)
     while (finTaksNb[0] != TASK_NB)
     {
         int cur = flag[0];
-        while (list[cur].isSave == false)
+        if (list[cur].nb > 0)
         {
-        }
-        int bytes = sizeof(int) * list[cur].nb;
-        cudaMemcpyAsync(list[cur].pHostResult, list[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
-        FILE *fp = fopen("./result.txt", "a+");
-        fprintf(fp, "%d\t", list[cur].id);
-        for (int i = 0; i < list[cur].nb; i++)
-        {
-            fprintf(fp, "%d", list[cur].pHostResult[i]);
-            if (i < list[cur].nb - 1)
+            while (list[cur].isSave == false)
             {
-                fprintf(fp, " ");
             }
+            int bytes = sizeof(int) * list[cur].nb;
+            cudaMemcpyAsync(list[cur].pHostResult, list[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
+            FILE *fp = fopen("./result.txt", "a+");
+            fprintf(fp, "%d\t", list[cur].id);
+            for (int i = 0; i < list[cur].nb; i++)
+            {
+                fprintf(fp, "%d", list[cur].pHostResult[i]);
+                if (i < list[cur].nb - 1)
+                {
+                    fprintf(fp, " ");
+                }
+            }
+            fprintf(fp, "\n");
+            fclose(fp);
+            printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
+            free(list[cur].pHostResult);
+            list[cur].pHostResult = NULL;
+            flag[0] = NEXT_TASK(cur);
+            list[cur].isSave = false;
+            (finTaksNb[0])++;
         }
-        fprintf(fp, "\n");
-        fclose(fp);
-        printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
-        free(list[cur].pHostResult);
-        list[cur].pHostResult = NULL;
-        flag[0] = NEXT_TASK(cur);
-        list[cur].isSave = false;
-        (finTaksNb[0])++;
     }
     return NULL;
 }
