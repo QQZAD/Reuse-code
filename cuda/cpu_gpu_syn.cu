@@ -4,9 +4,9 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 100
+#define TASK_NB 20
 #define WARP_SIZE 32
-#define LIST_SIZE 21 //实际容量要减1
+#define LIST_SIZE 6 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
 
 struct Task
@@ -70,16 +70,14 @@ void *cpuProducer(void *argc)
         cudaMalloc和cudaFree不是异步调用
         在执行调用之前将同步他们运行的上下文
         */
-        if (list[cur].pData != NULL)
+        if (list[cur].pData == NULL)
         {
-            cudaFree(list[cur].pData);
+            cudaMalloc((void **)&(list[cur].pData), bytes);
         }
-        if (list[cur].pResult != NULL)
+        if (list[cur].pResult == NULL)
         {
-            cudaFree(list[cur].pResult);
+            cudaMalloc((void **)&(list[cur].pResult), bytes);
         }
-        cudaMalloc((void **)&(list[cur].pData), bytes);
-        cudaMalloc((void **)&(list[cur].pResult), bytes);
         cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
         cudaMemcpyAsync(list[cur].pResult, result, bytes, cudaMemcpyHostToDevice, streamHd);
         list[cur].id = i;
@@ -185,6 +183,18 @@ void free()
     cudaStreamDestroy(streamHd);
     cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
+
+    for (int i = 0; i < LIST_SIZE; i++)
+    {
+        if (list[i].pData != NULL)
+        {
+            cudaFree(list[i].pData);
+        }
+        if (list[i].pResult != NULL)
+        {
+            cudaFree(list[i].pResult);
+        }
+    }
 
     cudaFreeHost(list);
     cudaFreeHost(flag);
