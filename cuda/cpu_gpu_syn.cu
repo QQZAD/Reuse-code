@@ -72,14 +72,11 @@ void *cpuProducer(void *argc)
             list[cur].pHostResult[j] = 0;
         }
         /*
-        cudaMalloc和cudaFree不是异步调用
+        cudaMalloc不是异步调用
         在执行调用之前将同步他们运行的上下文
         */
         cudaMalloc((void **)&(list[cur].pData), bytes);
-        // if (list[cur].pDevResult == NULL)
-        // {
         cudaMalloc((void **)&(list[cur].pDevResult), bytes);
-        // }
         cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
         cudaMemcpyAsync(list[cur].pDevResult, list[cur].pHostResult, bytes, cudaMemcpyHostToDevice, streamHd);
         list[cur].id = i;
@@ -124,6 +121,10 @@ __global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksN
             while (devList[cur].isSave == true)
             {
             }
+            /*
+            cudaFree不是异步调用
+            在执行调用之前将同步他们运行的上下文
+            */
             cudaFree(devList[cur].pDevResult);
         }
     }
