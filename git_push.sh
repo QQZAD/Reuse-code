@@ -13,5 +13,5 @@ git config --global user.name "QQZAD"
 git config --global push.default matching
 git status
 git add .
-git commit -m "shell"
+git commit -m "reuse-code"
 git push
