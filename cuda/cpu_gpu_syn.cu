@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 10
+#define TASK_NB 10000
 #define WARP_SIZE 32
 #define LIST_SIZE 6 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
@@ -47,6 +47,9 @@ static cudaStream_t streamDh;
 /*内核执行流*/
 static cudaStream_t streamKernel;
 
+/*CUDA异常处理*/
+static cudaError err;
+
 /*主机端生产者*/
 void *cpuProducer(void *argc)
 {
@@ -65,30 +68,22 @@ void *cpuProducer(void *argc)
         list[cur].nb = rand() % (WARP_SIZE - 1 + 1) + 1;
         int bytes = sizeof(int) * list[cur].nb;
         int *data = (int *)malloc(bytes);
-        while (list[cur].pHostResult != NULL)
-        {
-        }
-        list[cur].pHostResult = (int *)malloc(bytes);
         for (int j = 0; j < list[cur].nb; j++)
         {
             data[j] = i;
-            list[cur].pHostResult[j] = 0;
         }
-        /*
-        cudaMalloc不是异步调用
-        在执行调用之前将同步他们运行的上下文
-        执行cudaMalloc之前应该等待cudaFree执行完毕
-        */
-        while (list[cur].pData != NULL)
+        err = cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
+        if (err != 0)
         {
+            printf("[cudaError] cudaMemcpyAsync返回0x%x\n", err);
+            exit(1);
         }
-        cudaMalloc((void **)&(list[cur].pData), bytes);
-        while (list[cur].pDevResult != NULL)
+        err = cudaMemcpyAsync(list[cur].pDevResult, list[cur].pHostResult, bytes, cudaMemcpyHostToDevice, streamHd);
+        if (err != 0)
         {
+            printf("[cudaError] cudaMemcpyAsync返回0x%x\n", err);
+            exit(1);
         }
-        cudaMalloc((void **)&(list[cur].pDevResult), bytes);
-        cudaMemcpyAsync(list[cur].pData, data, bytes, cudaMemcpyHostToDevice, streamHd);
-        cudaMemcpyAsync(list[cur].pDevResult, list[cur].pHostResult, bytes, cudaMemcpyHostToDevice, streamHd);
         list[cur].id = i;
         flag[1] = NEXT_TASK(cur);
         free(data);
@@ -126,18 +121,10 @@ __global__ void gpuConsumer(struct Task *devList, int *devFlag, int *devFinTaksN
         if (threadId == 0)
         {
             printf("[gpu] %d处的任务%d处理完成\n", cur, devList[cur].id);
-            cudaFree(devList[cur].pData);
-            devList[cur].pData = NULL;
             devList[cur].isSave = true;
             while (devList[cur].isSave == true)
             {
             }
-            /*
-            cudaFree不是异步调用
-            在执行调用之前将同步他们运行的上下文
-            */
-            cudaFree(devList[cur].pDevResult);
-            devList[cur].pDevResult = NULL;
         }
     }
 }
@@ -154,7 +141,12 @@ void *cpuSaver(void *argc)
             {
             }
             int bytes = sizeof(int) * list[cur].nb;
-            cudaMemcpyAsync(list[cur].pHostResult, list[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
+            err = cudaMemcpyAsync(list[cur].pHostResult, list[cur].pDevResult, bytes, cudaMemcpyDeviceToHost, streamDh);
+            if (err != 0)
+            {
+                printf("[cudaError] cudaMemcpyAsync返回0x%x\n", err);
+                exit(1);
+            }
             FILE *fp = fopen("./result.txt", "a+");
             fprintf(fp, "%d\t", list[cur].id);
             for (int i = 0; i < list[cur].nb; i++)
@@ -168,8 +160,6 @@ void *cpuSaver(void *argc)
             fprintf(fp, "\n");
             fclose(fp);
             printf("[cpu] %d处的任务%d结果已经保存\n", cur, list[cur].id);
-            free(list[cur].pHostResult);
-            list[cur].pHostResult = NULL;
             list[cur].isSave = false;
             flag[0] = NEXT_TASK(cur);
             (finTaksNb[0])++;
@@ -191,6 +181,24 @@ void init()
     memset(flag, 0, flagBytes);
     memset(finTaksNb, 0, sizeof(int));
 
+    for (int i = 0; i < LIST_SIZE; i++)
+    {
+        err = cudaMalloc((void **)&(list[i].pData), sizeof(int) * WARP_SIZE);
+        if (err != 0)
+        {
+            printf("[cudaError] cudaMalloc返回0x%x\n", err);
+            exit(1);
+        }
+        err = cudaMalloc((void **)&(list[i].pDevResult), sizeof(int) * WARP_SIZE);
+        if (err != 0)
+        {
+            printf("[cudaError] cudaMalloc返回0x%x\n", err);
+            exit(1);
+        }
+        list[i].pHostResult = (int *)malloc(sizeof(int) * WARP_SIZE);
+        memset(list[i].pHostResult, 0, sizeof(int) * WARP_SIZE);
+    }
+
     cudaStreamCreate(&streamHd);
     cudaStreamCreate(&streamDh);
     cudaStreamCreate(&streamKernel);
@@ -206,6 +214,13 @@ void free()
     cudaStreamDestroy(streamHd);
     cudaStreamDestroy(streamDh);
     cudaStreamDestroy(streamKernel);
+
+    for (int i = 0; i < LIST_SIZE; i++)
+    {
+        cudaFree(list[i].pData);
+        cudaFree(list[i].pDevResult);
+        free(list[i].pHostResult);
+    }
 
     cudaFreeHost(list);
     cudaFreeHost(flag);
