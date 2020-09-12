@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define TASK_NB 40
+#define TASK_NB 100
 #define WARP_SIZE 32
 #define LIST_SIZE 6 //实际容量要减1
 #define NEXT_TASK(ID) ((ID + 1) % LIST_SIZE)
