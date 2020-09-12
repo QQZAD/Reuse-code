@@ -94,14 +94,22 @@ struct alignas(4) stc
     uint16_t g;
 };
 
+void x86_64()
+{
+    uint32_t a = 1;
+    uint8_t *p = (uint8_t *)&a;
+    printf("__LITTLE_ENDIAN 地址的低位存储值的低位\n%u-%u-%u-%u\n", p[0], p[1], p[2], p[3]);
+}
+
 int main()
 {
     // strCat(5);
     // int number = 34;
     // printf("%p\n", &number);
     // redirectPrintf();
-    checkWorkDir();
-    backWorkDir();
+    // checkWorkDir();
+    // backWorkDir();
+    x86_64();
     return 0;
 }
 /*
