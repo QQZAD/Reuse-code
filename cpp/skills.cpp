@@ -96,7 +96,7 @@ struct alignas(4) stc
 
 void pause_continue()
 {
-    printf("按任意键继续...\n");
+    printf("按回车键继续...\n");
     system("read REPLY");
 }
 
