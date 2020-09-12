@@ -94,6 +94,12 @@ struct alignas(4) stc
     uint16_t g;
 };
 
+void pause_continue()
+{
+    printf("按任意键继续...\n");
+    system("read REPLY");
+}
+
 void x86_64()
 {
     uint32_t a = 1;
@@ -109,6 +115,7 @@ int main()
     // redirectPrintf();
     // checkWorkDir();
     // backWorkDir();
+    pause_continue();
     x86_64();
     return 0;
 }
