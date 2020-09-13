@@ -84,6 +84,7 @@ void *cpuProducer(void *argc)
             printf("[cudaError] cudaMemcpyAsync返回0x%x\n", err);
             exit(1);
         }
+        cudaStreamSynchronize(streamHd);
         list[cur].id = i;
         flag[1] = NEXT_TASK(cur);
         free(data);
