@@ -148,6 +148,7 @@ void *cpuSaver(void *argc)
                 printf("[cudaError] cudaMemcpyAsync返回0x%x\n", err);
                 exit(1);
             }
+            cudaStreamSynchronize(streamDh);
             FILE *fp = fopen("./result.txt", "a+");
             fprintf(fp, "%d\t", list[cur].id);
             for (int i = 0; i < list[cur].nb; i++)
