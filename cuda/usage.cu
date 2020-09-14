@@ -9,15 +9,20 @@
 1.常量内存的单次读操作可以广播到“邻近”线程，从而降低内存读操作的次数。
 2.常量内存拥有高速缓存，对于相同内存地址的连续操作不会产生额外的开销。
 */
-static __contanst__ float constData[DATA_SIZE];
+static __constant__ float constData[DATA_SIZE];
 
 static float *data;
 static __device__ float *deviceData;
 
+float frand(float a, float b, int delta = 3)
+{
+    return (rand() % (1000 - a + 1)) * 0.001f;
+}
+
 __global__ void kernel()
 {
     int threadId = threadIdx.x;
-    printf("%", );
+    // printf("%", );
     constData[threadId] += 1.1;
 }
 
@@ -25,10 +30,14 @@ int main()
 {
     float data[DATA_SIZE];
 
-    forr(int i = 0; i < DATA_SIZE; i++)
+    // for (int i = 0; i < DATA_SIZE; i++)
+    // {
+    //     data[i] = (rand() % 1001) * 0.001f;
+    //     printf("%f\n", data[i]);
+    // }
+    for (int i = 0; i < 100; i++)
     {
-        data[i] = (rand() % 1001) * 0.001f;
-        printf("%f\n", data[i]);
+        printf("%f\n", frand(1, 1));
     }
 
     // kernel<<<1, DATA_SIZE>>>();
