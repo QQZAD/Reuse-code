@@ -37,6 +37,7 @@
         "string_view": "cpp",
         "__hash_table": "cpp",
         "__tree": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "cmath": "cpp"
     },
 }

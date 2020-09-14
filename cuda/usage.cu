@@ -1,54 +1,74 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <assert.h>
 #include <cuda_runtime.h>
 #include <unistd.h>
 
-#define DATA_SIZE 256
+#define DATA_SIZE 32
 /*
-常量内存用于保存在核函数执行期间不会发生变化的数据
+常量内存大小限制为64KB
 1.常量内存的单次读操作可以广播到“邻近”线程，从而降低内存读操作的次数。
 2.常量内存拥有高速缓存，对于相同内存地址的连续操作不会产生额外的开销。
 */
 static __constant__ float constData[DATA_SIZE];
+/*
+纹理内存只读
+*/
+static texture<float> texData;
 
-static float *data;
+static float *_data;
+/*
+全局内存
+*/
 static __device__ float *deviceData;
 
-float frand(float a, float b, int delta = 3)
+float frand(int a, int b, int delta = 6)
 {
-    return (rand() % (1000 - a + 1)) * 0.001f;
+    assert(b >= a);
+    b *= pow(10, delta);
+    a *= pow(10, delta);
+    float d = pow(10, -delta);
+    return (rand() % (b - a + 1) + a) * d;
 }
 
 __global__ void kernel()
 {
     int threadId = threadIdx.x;
-    // printf("%", );
-    constData[threadId] += 1.1;
+    printf("constData-threadId-%d-%f\n", threadId, constData[threadId]);
+    printf("texData-threadId-%d-%f\n", threadId, tex1Dfetch(texData, threadId));
+    printf("deviceData-threadId-%d-%f\n", threadId, deviceData[threadId]);
 }
 
 int main()
 {
+    int bytes = DATA_SIZE * sizeof(float);
     float data[DATA_SIZE];
-
-    // for (int i = 0; i < DATA_SIZE; i++)
-    // {
-    //     data[i] = (rand() % 1001) * 0.001f;
-    //     printf("%f\n", data[i]);
-    // }
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < DATA_SIZE; i++)
     {
-        printf("%f\n", frand(1, 1));
+        data[i] = frand(10, 50);
+        printf("START-%f\n", data[i]);
+    }
+    cudaMalloc((void **)&_data, bytes);
+    cudaMemcpy(_data, data, bytes, cudaMemcpyHostToDevice);
+
+    cudaMemcpyToSymbol(constData, data, sizeof(data));
+
+    cudaBindTexture(NULL, texData, _data, bytes);
+
+    cudaMemcpyToSymbol(deviceData, &_data, sizeof(_data));
+
+    kernel<<<1, DATA_SIZE>>>();
+
+    cudaMemcpyFromSymbol(data, constData, sizeof(data));
+
+    for (int i = 0; i < DATA_SIZE; i++)
+    {
+        printf("END-%f\n", data[i]);
     }
 
-    // kernel<<<1, DATA_SIZE>>>();
-    // cudaMemcpyToSymbol(constData, data, sizeof(data));
-
-    // cudaMemcpyFromSymbol(data, constData, sizeof(data));
-
-    // float *ptr;
-    // cudaMalloc(&ptr, 256 * sizeof(float));
-    // cudaMemcpyToSymbol(devPointer, &ptr, sizeof(ptr));
-
+    cudaUnbindTexture(texData);
+    cudaFree(_data);
     return 0;
 }
 /*
@@ -65,5 +85,5 @@ file usage
 r
 q
 
-rm -rf usage usage.o usage.log
+rm -rf usage usage.o
 */
