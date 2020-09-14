@@ -9,7 +9,7 @@ enum sortType
     descend
 };
 
-#define NB 100
+#define NB 100000
 
 void generate(long long *array, long long nb)
 {
@@ -113,8 +113,8 @@ int main()
     save((char *)"bubbleSort.txt", b, NB);
 
     memcpy(b, a, sizeof(long long) * NB);
-    clock_gettime(CLOCK_MONOTONIC, &start);
     printf("quickSort-start\n");
+    clock_gettime(CLOCK_MONOTONIC, &start);
     quickSort(b, 0, NB - 1);
     clock_gettime(CLOCK_MONOTONIC, &end);
     printf("quickSort-%lds\n", end.tv_sec - start.tv_sec);
