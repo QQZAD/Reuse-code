@@ -8,7 +8,7 @@
 
 static char c;
 static __device__ char devC;
-__device__ const int arrayNb = 2;
+static __device__ const int arrayNb = 2;
 
 __global__ void cond_syn()
 {
