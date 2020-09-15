@@ -14,13 +14,10 @@ static pthread_t input_t[FLOWS_NB];
 /*在该实例中不用互斥锁也不会出现问题*/
 // static pthread_mutex_t lock[FLOWS_NB];
 
-/*共享变量*/
-static int shared;
-
 /*互斥锁*/
 static pthread_mutex_t mutex;
 
-void *flowInput(void *arg)
+static void *flowInput(void *arg)
 {
     int flowId = *(int *)arg;
     nb[flowId] = rand() % 10 + 1;
@@ -37,7 +34,7 @@ void *flowInput(void *arg)
     printf("flowId-%d-pac-%p\n", flowId, pac[flowId]);
 }
 
-void *input(void *arg)
+static void *input(void *arg)
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -46,7 +43,7 @@ void *input(void *arg)
     }
 }
 
-void *process(void *arg)
+static void *process(void *arg)
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -65,7 +62,7 @@ void *process(void *arg)
     }
 }
 
-void freeMem()
+static void freeMem()
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -75,7 +72,7 @@ void freeMem()
     }
 }
 
-void flows()
+static void flows()
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -93,38 +90,54 @@ void flows()
     freeMem();
 }
 
-void *pmutexProcess1(void *argc)
+static void *pmutexThread(void *arg)
 {
-    for (int i = 0; i < 100; i++)
-    {
-        shared += 3;
-    }
-    return NULL;
-}
+    int flag = *((int *)arg);
+    pthread_mutex_lock(&mutex);
 
-void *pmutexProcess2(void *argc)
-{
-    for (int i = 0; i < 100; i++)
+    // int err = pthread_mutex_trylock(&mutex);
+    // if (0 != err)
+    // {
+    //     if (EBUSY == err)
+    //     {
+    //         //The mutex could not be acquired because it was already locked.
+    //     }
+    // }
+
+    // struct timespec timeout;
+    // timeout.tv_sec = time(NULL) + 1;
+    // timeout.tv_nsec = 0;
+    // int err = pthread_mutex_timedlock(&mutex, &timeout);
+    // if (0 != err)
+    // {
+    //     if (ETIMEDOUT == err)
+    //     {
+    //         //The mutex could not be locked before the specified timeout expired.
+    //     }
+    // }
+
+    for (int i = 97; i < 123; i++)
     {
-        shared -= 2;
+        printf("%c%d", i, flag);
     }
-    return NULL;
+    printf("\n");
+    pthread_mutex_unlock(&mutex);
 }
 
 /*使用互斥锁*/
-void pmutex()
+static void pmutex()
 {
-    shared = 0;
-    pthread_t process1_t, process2_t;
+    pthread_t thread1, thread2;
+    int flag1 = 1;
+    int flag2 = 2;
+
     pthread_mutex_init(&mutex, NULL);
 
-    pthread_create(&process1_t, NULL, pmutexProcess1, NULL);
-    pthread_create(&process2_t, NULL, pmutexProcess2, NULL);
+    pthread_create(&thread1, NULL, pmutexThread, (void *)&flag1);
+    pthread_create(&thread1, NULL, pmutexThread, (void *)&flag2);
 
-    pthread_join(process1_t, NULL);
-    pthread_join(process2_t, NULL);
-
-    printf("pmutex-%d\n", shared);
+    pthread_join(thread1, NULL);
+    pthread_join(thread1, NULL);
 
     pthread_mutex_destroy(&mutex);
 }
