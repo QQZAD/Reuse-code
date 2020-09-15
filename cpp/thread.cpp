@@ -14,6 +14,12 @@ static pthread_t input_t[FLOWS_NB];
 /*在该实例中不用互斥锁也不会出现问题*/
 // static pthread_mutex_t lock[FLOWS_NB];
 
+/*共享变量*/
+static int shared;
+
+/*互斥锁*/
+static pthread_mutex_t mutex;
+
 void *flowInput(void *arg)
 {
     int flowId = *(int *)arg;
@@ -69,7 +75,7 @@ void freeMem()
     }
 }
 
-int main()
+void flows()
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -85,6 +91,47 @@ int main()
     pthread_join(process_t, NULL);
 
     freeMem();
+}
+
+void *pmutexProcess1(void *argc)
+{
+    for (int i = 0; i < 100; i++)
+    {
+        shared += 3;
+    }
+    return NULL;
+}
+
+void *pmutexProcess2(void *argc)
+{
+    for (int i = 0; i < 100; i++)
+    {
+        shared -= 2;
+    }
+    return NULL;
+}
+
+/*使用互斥锁*/
+void pmutex()
+{
+    shared = 0;
+    pthread_t process1_t, process2_t;
+    pthread_mutex_init(&mutex, NULL);
+
+    pthread_create(&process1_t, NULL, pmutexProcess1, NULL);
+    pthread_create(&process2_t, NULL, pmutexProcess2, NULL);
+
+    pthread_join(process1_t, NULL);
+    pthread_join(process2_t, NULL);
+
+    printf("pmutex-%d\n", shared);
+
+    pthread_mutex_destroy(&mutex);
+}
+
+int main()
+{
+    pmutex();
     return 0;
 }
 /*
