@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <asm-generic/errno.h>
+#include <asm-generic/errno-base.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -16,6 +18,14 @@ static pthread_t input_t[FLOWS_NB];
 
 /*互斥锁*/
 static pthread_mutex_t mutex;
+enum mutexType
+{
+    NONE,
+    NORMAL,
+    TRY,
+    TIMEOUT
+};
+static mutexType mt = NORMAL;
 
 static void *flowInput(void *arg)
 {
@@ -93,29 +103,35 @@ static void flows()
 static void *pmutexThread(void *arg)
 {
     int flag = *((int *)arg);
-    pthread_mutex_lock(&mutex);
-
-    // int err = pthread_mutex_trylock(&mutex);
-    // if (0 != err)
-    // {
-    //     if (EBUSY == err)
-    //     {
-    //         //The mutex could not be acquired because it was already locked.
-    //     }
-    // }
-
-    // struct timespec timeout;
-    // timeout.tv_sec = time(NULL) + 1;
-    // timeout.tv_nsec = 0;
-    // int err = pthread_mutex_timedlock(&mutex, &timeout);
-    // if (0 != err)
-    // {
-    //     if (ETIMEDOUT == err)
-    //     {
-    //         //The mutex could not be locked before the specified timeout expired.
-    //     }
-    // }
-
+    if (mt == NORMAL)
+    {
+        pthread_mutex_lock(&mutex);
+    }
+    else if (mt == TRY)
+    {
+        int err = pthread_mutex_trylock(&mutex);
+        if (0 != err)
+        {
+            if (EBUSY == err)
+            {
+                printf("flag %d The mutex could not be acquired because it was already locked.\n", flag);
+            }
+        }
+    }
+    else if (mt == TIMEOUT)
+    {
+        struct timespec timeout;
+        timeout.tv_sec = 2;
+        timeout.tv_nsec = 0;
+        int err = pthread_mutex_timedlock(&mutex, &timeout);
+        if (0 != err)
+        {
+            if (ETIMEDOUT == err)
+            {
+                printf("flag %d The mutex could not be locked before the specified timeout expired.\n", flag);
+            }
+        }
+    }
     for (int i = 97; i < 123; i++)
     {
         printf("%c%d", i, flag);
@@ -134,10 +150,10 @@ static void pmutex()
     pthread_mutex_init(&mutex, NULL);
 
     pthread_create(&thread1, NULL, pmutexThread, (void *)&flag1);
-    pthread_create(&thread1, NULL, pmutexThread, (void *)&flag2);
+    pthread_create(&thread2, NULL, pmutexThread, (void *)&flag2);
 
     pthread_join(thread1, NULL);
-    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
 
     pthread_mutex_destroy(&mutex);
 }
