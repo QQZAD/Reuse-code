@@ -35,6 +35,7 @@ float frand(int a, int b, int delta = 6)
 __global__ void kernel()
 {
     int threadId = threadIdx.x;
+    constData[threadId] = threadId;
     printf("constData-threadId-%d-%f\n", threadId, constData[threadId]);
     printf("texData-threadId-%d-%f\n", threadId, tex1Dfetch(texData, threadId));
     printf("deviceData-threadId-%d-%f\n", threadId, deviceData[threadId]);
