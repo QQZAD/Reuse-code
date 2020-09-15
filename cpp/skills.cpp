@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #include <bits/stdint-uintn.h>
 
 #define PRINTF_TO_FILE
@@ -107,6 +108,31 @@ void x86_64()
     printf("__LITTLE_ENDIAN 地址的低位存储值的低位\n%u-%u-%u-%u\n", p[0], p[1], p[2], p[3]);
 }
 
+void progressBar()
+{
+    char str[100] = "Please be patient! We'll finish it in a minute! The mission is almost complete. You are very happy!";
+    for (int i = 0; i <= 100; i++)
+    {
+        printf("\r");
+        for (int j = 0; j < 100; j++)
+        {
+            if (j < i)
+            {
+                // printf("+");
+                printf("%c", str[j]);
+            }
+            else
+            {
+                printf("-");
+            }
+        }
+        printf("%d%%", i);
+        fflush(stdout);
+        usleep((rand() % (5 - 1 + 1) + 1) * pow(10, 4));
+    }
+    printf("\n");
+}
+
 int main()
 {
     // strCat(5);
@@ -115,8 +141,9 @@ int main()
     // redirectPrintf();
     // checkWorkDir();
     // backWorkDir();
-    pause_continue();
-    x86_64();
+    // pause_continue();
+    // x86_64();
+    progressBar();
     return 0;
 }
 /*
