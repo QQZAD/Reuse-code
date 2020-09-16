@@ -33,6 +33,9 @@ static int shared = 0;
 /*条件变量*/
 static pthread_cond_t cond;
 
+/*读写锁*/
+static pthread_rwlock_t rwlock;
+
 static void *flowInput(void *arg)
 {
     int flowId = *(int *)arg;
@@ -177,6 +180,7 @@ static void *pcondThread(void *arg)
 /*使用条件变量*/
 static void pcond()
 {
+    shared = 0;
     pthread_t thread1, thread2;
 
     pthread_cond_init(&cond, NULL);
@@ -197,11 +201,57 @@ static void pcond()
     pthread_mutex_destroy(&mutex);
 }
 
+static void *pthreadWrite(void *arg)
+{
+    int i = (*(int *)arg);
+    while (shared <= 100)
+    {
+        pthread_rwlock_wrlock(&rwlock);
+        printf("write_thread_id=%d,shared=%d\n", i, shared += 20);
+        pthread_rwlock_unlock(&rwlock);
+        sleep(1);
+    }
+    return NULL;
+}
+
+static void *pthreadRead(void *arg)
+{
+    int i = (*(int *)arg);
+    while (shared <= 100)
+    {
+        pthread_rwlock_rdlock(&rwlock);
+        printf("read_thread_id=%d,shared=%d\n", i, shared);
+        pthread_rwlock_unlock(&rwlock);
+        sleep(1);
+    }
+    return NULL;
+}
+
+/*使用读写锁*/
+static void prwlock()
+{
+    shared = 0;
+    pthread_t thread1, thread2;
+    int flag1 = 1;
+    int flag2 = 2;
+
+    pthread_rwlock_init(&rwlock, NULL);
+
+    pthread_create(&thread1, NULL, pthreadWrite, (void *)&flag1);
+    pthread_create(&thread2, NULL, pthreadRead, (void *)&flag2);
+
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+
+    pthread_rwlock_destroy(&rwlock);
+}
+
 int main()
 {
-    thread();
+    prwlock();
     return 0;
 }
+
 /*
 cd cpp;g++ -g thread.cpp -o thread -lpthread;./thread;cd ..
 cd cpp;rm -rf thread;cd ..
