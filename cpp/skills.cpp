@@ -110,7 +110,7 @@ void x86_64()
 
 void progressBar()
 {
-    char str[100] = "Please be patient! We'll finish it in a minute! The mission is almost complete. You are very happy!";
+    char str[100] = "Please be patient! We'll finish it in a minute! The mission is almost complete. We are happy!🚙";
     for (int i = 0; i <= 100; i++)
     {
         printf("\r");
@@ -133,6 +133,30 @@ void progressBar()
     printf("\n");
 }
 
+void car()
+{
+    for (int i = 0; i <= 150; i++)
+    {
+        printf("\r");
+        for (int j = 0; j < 150 - i; j++)
+        {
+            printf(" ");
+        }
+        printf("🚙");
+        // printf("🚒");
+        // printf("🏍");
+        for (int j = 0; j <= i; j++)
+        {
+            printf(" ");
+        }
+        fflush(stdout);
+        usleep((15 - i / 10.0 + 1) * pow(10, 4));
+        // usleep((rand() % (8 - 4 + 1) + 4) * pow(10, 4));
+    }
+
+    printf("\n");
+}
+
 int main()
 {
     // strCat(5);
@@ -143,7 +167,7 @@ int main()
     // backWorkDir();
     // pause_continue();
     // x86_64();
-    progressBar();
+    car();
     return 0;
 }
 /*
