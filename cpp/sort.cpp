@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <vector>
+#include <algorithm>
 
 enum sortType
 {
@@ -9,7 +11,11 @@ enum sortType
     descend
 };
 
-#define NB 100000
+#define NB 10000
+
+timespec start, end;
+long long a[NB];
+long long *b = (long long *)malloc(sizeof(long long) * NB);
 
 void generate(long long *array, long long nb)
 {
@@ -97,13 +103,8 @@ void quickSort(long long *array, long long start, long long end, sortType st = a
     }
 }
 
-int main()
+void bubble()
 {
-    timespec start, end;
-    long long a[NB];
-    generate(a, NB);
-    long long *b = (long long *)malloc(sizeof(long long) * NB);
-
     memcpy(b, a, sizeof(long long) * NB);
     printf("bubbleSort-start\n");
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -111,7 +112,10 @@ int main()
     clock_gettime(CLOCK_MONOTONIC, &end);
     printf("bubbleSort-%lds\n", end.tv_sec - start.tv_sec);
     save((char *)"bubbleSort.txt", b, NB);
+}
 
+void quick()
+{
     memcpy(b, a, sizeof(long long) * NB);
     printf("quickSort-start\n");
     clock_gettime(CLOCK_MONOTONIC, &start);
@@ -119,6 +123,36 @@ int main()
     clock_gettime(CLOCK_MONOTONIC, &end);
     printf("quickSort-%lds\n", end.tv_sec - start.tv_sec);
     save((char *)"quickSort.txt", b, NB);
+}
+
+bool cmp(int a, int b)
+{
+    return a < b;
+}
+
+void lambda()
+{
+    std::vector<int> vec{3, 2, 5, 7, 3, 2};
+
+    std::vector<int> lbvec(vec);
+
+    sort(vec.begin(), vec.end(), cmp);
+    cout << "predicate function:" << endl;
+    for (int it : vec)
+        cout << it << ' ';
+    cout << endl;
+
+    sort(lbvec.begin(), lbvec.end(), [](int a, int b) -> bool { return a < b; });
+    cout << "lambda表达式" << endl;
+    for (int it : lbvec)
+        cout << it << ' ';
+}
+
+int main()
+{
+    generate(a, NB);
+
+    lambda();
 
     free(b);
     return 0;

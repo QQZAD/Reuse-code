@@ -27,6 +27,12 @@ enum mutexType
 };
 static mutexType mt = NORMAL;
 
+/*共享变量*/
+static int shared = 0;
+
+/*条件变量*/
+static pthread_cond_t cond;
+
 static void *flowInput(void *arg)
 {
     int flowId = *(int *)arg;
@@ -82,7 +88,7 @@ static void freeMem()
     }
 }
 
-static void flows()
+static void thread()
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -158,9 +164,42 @@ static void pmutex()
     pthread_mutex_destroy(&mutex);
 }
 
+static void *pcondThread(void *arg)
+{
+    pthread_mutex_lock(&mutex);
+    pthread_cond_wait(&cond, &mutex);
+    shared++;
+    printf("Thread id is %ld ,shared=%d \n", pthread_self(), shared);
+    pthread_mutex_unlock(&mutex);
+    return NULL;
+}
+
+/*使用条件变量*/
+static void pcond()
+{
+    pthread_t thread1, thread2;
+
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_init(&mutex, NULL);
+
+    pthread_create(&thread1, NULL, pcondThread, NULL);
+    pthread_create(&thread2, NULL, pcondThread, NULL);
+
+    sleep(1);
+    pthread_cond_signal(&cond);
+    sleep(1);
+    pthread_cond_signal(&cond);
+
+    pthread_join(thread1, NULL);
+    pthread_join(thread2, NULL);
+
+    pthread_cond_destroy(&cond);
+    pthread_mutex_destroy(&mutex);
+}
+
 int main()
 {
-    pmutex();
+    thread();
     return 0;
 }
 /*
