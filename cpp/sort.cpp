@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <iostream>
 #include <vector>
 #include <algorithm>
 
@@ -11,7 +12,7 @@ enum sortType
     descend
 };
 
-#define NB 10000
+#define NB 100
 
 timespec start, end;
 long long a[NB];
@@ -132,20 +133,29 @@ bool cmp(int a, int b)
 
 void lambda()
 {
-    std::vector<int> vec{3, 2, 5, 7, 3, 2};
-
-    std::vector<int> lbvec(vec);
-
+    std::vector<long long> vec(NB);
+    for (int i = 0; i < vec.size(); i++)
+    {
+        vec[i] = rand() % (NB - 1 + 0);
+    }
+    std::vector<long long> lbvec(vec);
     sort(vec.begin(), vec.end(), cmp);
-    cout << "predicate function:" << endl;
-    for (int it : vec)
-        cout << it << ' ';
-    cout << endl;
+
+    printf("普通方式\n");
+    for (long long it : vec)
+    {
+        std::cout << it << ' ';
+    }
+    printf("\n");
 
     sort(lbvec.begin(), lbvec.end(), [](int a, int b) -> bool { return a < b; });
-    cout << "lambda表达式" << endl;
-    for (int it : lbvec)
-        cout << it << ' ';
+
+    printf("lambda表达式\n");
+    for (long long it : lbvec)
+    {
+        std::cout << it << ' ';
+    }
+    printf("\n");
 }
 
 int main()
