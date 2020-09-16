@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <pthread.h>
-#include <asm-generic/errno.h>
-#include <asm-generic/errno-base.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <atomic>
 
 #define FLOWS_NB 4
 
@@ -16,6 +17,8 @@ static pthread_t input_t[FLOWS_NB];
 /*在该实例中不用互斥锁也不会出现问题*/
 // static pthread_mutex_t lock[FLOWS_NB];
 
+static int shared = 0;
+
 /*互斥锁*/
 static pthread_mutex_t mutex;
 enum mutexType
@@ -27,14 +30,24 @@ enum mutexType
 };
 static mutexType mt = NORMAL;
 
-/*共享变量*/
-static int shared = 0;
-
 /*条件变量*/
 static pthread_cond_t cond;
 
+/*信号量*/
+#define QUEUE_NB 5
+static int queue[QUEUE_NB];
+static sem_t psem, csem;
+
 /*读写锁*/
 static pthread_rwlock_t rwlock;
+
+/*原子变量*/
+std::atomic<int> atomInt;
+template <typename BaseType>
+struct atomic
+{
+    operator BaseType() const volatile;
+};
 
 static void *flowInput(void *arg)
 {
@@ -91,7 +104,8 @@ static void freeMem()
     }
 }
 
-static void thread()
+/*多输入单输出*/
+static void pthread()
 {
     for (int i = 0; i < FLOWS_NB; i++)
     {
@@ -201,6 +215,61 @@ static void pcond()
     pthread_mutex_destroy(&mutex);
 }
 
+void *producer(void *arg)
+{
+    int pos = 0;
+    int num, count = 0;
+    for (int i = 0; i < 12; i++)
+    {
+        num = rand() % 100;
+        count += num;
+        sem_wait(&psem);
+        queue[pos] = num;
+        sem_post(&csem);
+        printf("producer: %d\n", num);
+        pos = (pos + 1) % QUEUE_NB;
+        sleep(rand() % 2);
+    }
+    printf("producer count=%d\n", count);
+    return NULL;
+}
+
+void *consumer(void *arg)
+{
+    int pos = 0;
+    int num, count = 0;
+    for (int i = 0; i < 12; i++)
+    {
+        sem_wait(&csem);
+        num = queue[pos];
+        sem_post(&psem);
+        printf("consumer: %d\n", num);
+        count += num;
+        pos = (pos + 1) % QUEUE_NB;
+        sleep(rand() % 3);
+    }
+    printf("consumer count=%d\n", count);
+    return NULL;
+}
+
+/*使用信号量*/
+static void psemaphore()
+{
+    sem_init(&psem, 0, QUEUE_NB);
+    sem_init(&csem, 0, 0);
+
+    pthread_t tid[2];
+
+    pthread_create(&tid[0], NULL, producer, NULL);
+    pthread_create(&tid[1], NULL, consumer, NULL);
+
+    pthread_join(tid[0], NULL);
+    pthread_join(tid[1], NULL);
+
+    sem_destroy(&psem);
+    sem_destroy(&csem);
+}
+
 static void *pthreadWrite(void *arg)
 {
     int i = (*(int *)arg);
@@ -246,9 +315,50 @@ static void prwlock()
     pthread_rwlock_destroy(&rwlock);
 }
 
+static void *pthreadAtomic(void *arg)
+{
+    bool barg = *((bool *)arg);
+    if (barg == true)
+    {
+        for (int i = 0; i < rand() % 20; i++)
+        {
+            atomInt++;
+        }
+    }
+    else
+    {
+        for (int i = 0; i < rand() % 20; i++)
+        {
+            atomInt--;
+        }
+    }
+    return NULL;
+}
+
+/*使用原子变量*/
+static void patomic()
+{
+    atomInt = 0;
+    bool arg[2] = {true, false};
+    pthread_t pth[2];
+
+    pthread_create(&pth[0], NULL, pthreadAtomic, (void *)arg);
+    pthread_create(&pth[1], NULL, pthreadAtomic, (void *)(arg + 1));
+
+    pthread_join(pth[0], NULL);
+    pthread_join(pth[1], NULL);
+
+    printf("atomInt=%d\n", int(atomInt));
+}
+
 int main()
 {
-    prwlock();
+    // pthread();
+    // pmutex();
+    // pcond();
+    // psemaphore();
+    // prwlock();
+    patomic();
     return 0;
 }
 

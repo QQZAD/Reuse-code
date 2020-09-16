@@ -8,6 +8,13 @@
 #include <bits/stdint-uintn.h>
 
 #define PRINTF_TO_FILE
+enum move
+{
+    LEFT,
+    RIGHT,
+    UP,
+    DOWN
+};
 
 void newFolder(char *dirName)
 {
@@ -157,6 +164,12 @@ void car()
     printf("\n");
 }
 
+void inputPassword()
+{
+    char *password = getpass("输入密码：");
+    printf("%s\n", password);
+}
+
 int main()
 {
     // strCat(5);
@@ -168,6 +181,7 @@ int main()
     // pause_continue();
     // x86_64();
     car();
+    // inputPassword();
     return 0;
 }
 /*
