@@ -7,10 +7,10 @@
 #include <algorithm>
 
 /*
-Θ 紧确界 u(x)=Θ(v(x)) lim(x->x0)(u(x)/v(x))=c>0
-O 上界 相当于"<="
-o 非紧上界 相当于"<"
-Ω 下界 相当于">="
+Θ 紧确界 f(x)=Θ(g(x)) lim(x->∞)(f(x)/g(x))=c>0
+O 上界 f(x)=O(g(x)) ∀x>x0>0 0<=f(x)<=c*g(x) c>0
+o 非紧上界 f(x)=O(g(x))
+Ω 下界 f(x)=Ω(g(x)) ∀x>x0>0 0<=f(x)<=c*g(x) c>0
 ω 非紧下界 相当于">"
 */
 enum sortType
