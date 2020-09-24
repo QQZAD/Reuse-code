@@ -6,6 +6,13 @@
 #include <vector>
 #include <algorithm>
 
+/*
+Θ 紧确界 u(x)=Θ(v(x)) lim(x->x0)(u(x)/v(x))=c>0
+O 上界 相当于"<="
+o 非紧上界 相当于"<"
+Ω 下界 相当于">="
+ω 非紧下界 相当于">"
+*/
 enum sortType
 {
     ascend,
@@ -39,10 +46,11 @@ void save(char *filename, long long *array, long long nb)
 
 /*
 时间复杂度：
-最好O(n)
-平均O(n^2)
+最好Ω(n)
+平均θ(n^2)
 最坏n+n-1+n-2+...+2+1=n(n+1)/2 O(n^2)
-空间复杂度：
+空间复杂度（辅助存储）：
+O(1)
 */
 void bubbleSort(long long *array, long long nb, sortType st = ascend)
 {
@@ -71,10 +79,11 @@ void bubbleSort(long long *array, long long nb, sortType st = ascend)
 
 /*
 时间复杂度：
-最好O(nlog(2)n)=O(nlogn)
-平均O(nlog(2)n)=O(nlogn)
+最好Ω(nlog(2)n)=Ω(nlogn)
+平均θ(nlog(2)n)=θ(nlogn)
 最坏O(n^2)
-空间复杂度：
+空间复杂度（辅助存储）：
+O(nlogn)
 */
 void quickSort(long long *array, long long start, long long end, sortType st = ascend)
 {
