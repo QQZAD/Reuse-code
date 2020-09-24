@@ -37,6 +37,13 @@ void save(char *filename, long long *array, long long nb)
     fclose(fp);
 }
 
+/*
+时间复杂度：
+最好O(n)
+平均O(n^2)
+最坏n+n-1+n-2+...+2+1=n(n+1)/2 O(n^2)
+空间复杂度：
+*/
 void bubbleSort(long long *array, long long nb, sortType st = ascend)
 {
     for (long long i = 0; i < nb; i++)
@@ -62,6 +69,13 @@ void bubbleSort(long long *array, long long nb, sortType st = ascend)
     }
 }
 
+/*
+时间复杂度：
+最好O(nlog(2)n)=O(nlogn)
+平均O(nlog(2)n)=O(nlogn)
+最坏O(n^2)
+空间复杂度：
+*/
 void quickSort(long long *array, long long start, long long end, sortType st = ascend)
 {
     if (start < end)
