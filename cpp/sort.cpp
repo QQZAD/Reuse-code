@@ -89,6 +89,42 @@ void bubbleSort(long long *array, long long nb, sortType st = ascend)
 
 /*
 时间复杂度：
+最好Ω(n^2)
+平均θ(n^2)
+最坏O(n^2)
+空间复杂度：
+在原数组实现排序
+O(1)
+*/
+void selectionSort(long long *array, long long nb, sortType st = ascend)
+{
+    for (int i = 0; i < nb - 1; i++)
+    {
+        int m = i;
+        for (int j = i + 1; j < nb; j++)
+        {
+            bool judge;
+            if (st == ascend)
+            {
+                judge = array[j] < array[m];
+            }
+            else if (st == descend)
+            {
+                judge = array[j] > array[m];
+            }
+            if (judge)
+            {
+                m = j;
+            }
+        }
+        long long temp = array[m];
+        array[m] = array[i];
+        array[i] = temp;
+    }
+}
+
+/*
+时间复杂度：
 最好Ω(nlog(2)n)=Ω(nlogn)
 平均θ(nlog(2)n)=θ(nlogn)
 最坏O(n^2)
@@ -148,6 +184,17 @@ void bubble()
     save((char *)"bubbleSort.txt", b, NB);
 }
 
+void selection()
+{
+    memcpy(b, a, sizeof(long long) * NB);
+    printf("selectionSort-start\n");
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    selectionSort(b, NB);
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    printf("selectionSort-%lds\n", end.tv_sec - start.tv_sec);
+    save((char *)"selectionSort.txt", b, NB);
+}
+
 void quick()
 {
     memcpy(b, a, sizeof(long long) * NB);
@@ -195,12 +242,13 @@ int main()
 {
     generate(a, NB);
 
-    lambda();
+    // lambda();
+    selection();
 
     free(b);
     return 0;
 }
 /*
 cd cpp;g++ -g sort.cpp -o sort;./sort;cd ..
-cd cpp;rm -rf sort bubbleSort.txt quickSort.txt;cd ..
+cd cpp;rm -rf sort bubbleSort.txt selectionSort.txt quickSort.txt;cd ..
 */
