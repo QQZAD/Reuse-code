@@ -134,9 +134,15 @@ void bitsOperate()
     printBinary(sizeof(int), (void *)&i);
     i = ~i;
     printBinary(sizeof(int), (void *)&i);
-    i <<= 3;
+    /*左移一位代表乘2，右边补0*/
+    i <<= 5;
     printBinary(sizeof(int), (void *)&i);
-    i >>= 5;
+    /*
+    右移一位代表除2，
+    对于有符号数，左边补符号位
+    对于无符号数，左边补0
+    */
+    i >>= 3;
     printBinary(sizeof(int), (void *)&i);
     i &= 0xFfFfFf00;
     printBinary(sizeof(int), (void *)&i);
