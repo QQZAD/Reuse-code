@@ -242,8 +242,7 @@ int main()
 {
     generate(a, NB);
 
-    // lambda();
-    selection();
+    lambda();
 
     free(b);
     return 0;
