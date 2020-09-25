@@ -4,9 +4,9 @@
 #include <pthread.h>
 #include <signal.h>
 #include <netinet/ether.h>
+#include <netinet/ip.h>
+#include <arpa/inet.h>
 
-/*该宏定义用于对接到GRIGHT*/
-// #define GRIGHT
 /*流的条数*/
 #define FLOWS_NB 2 //对应./dpdk -l 0-1
 /*接收描述符的初始数量*/
@@ -100,10 +100,63 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     return 0;
 }
 
+static void printNetInfo(struct ether_header *eth)
+{
+    uint16_t ether_type = ntohs(eth->ether_type);
+    if (ether_type == ETHERTYPE_IP)
+    {
+        printf("--3层协议为IPv4\n");
+    }
+    else if (ether_type == ETHERTYPE_IPV6)
+    {
+        printf("--3层协议为IPv6\n");
+    }
+    struct iphdr *iph = (struct iphdr *)(eth + 1);
+    if (iph->protocol == 0x11)
+    {
+        printf("--4层协议为UDP\n");
+    }
+    else if (iph->protocol == 0x06)
+    {
+        printf("--4层协议为TCP\n");
+    }
+    else
+    {
+        printf("--4层协议不是UDP或TCP\n");
+    }
+    printf("--生存时间为%u\n", iph->ttl);
+    printf("--MAC源地址为");
+    for (int i = 0; i < ETH_ALEN; i++)
+    {
+        printf("%02x", eth->ether_shost[i]);
+        if (i < ETH_ALEN - 1)
+        {
+            printf(":");
+        }
+    }
+    printf("\n");
+    printf("--MAC目的地址为");
+    for (int i = 0; i < ETH_ALEN; i++)
+    {
+        printf("%02x", eth->ether_dhost[i]);
+        if (i < ETH_ALEN - 1)
+        {
+            printf(":");
+        }
+    }
+    printf("\n");
+    struct in_addr addr;
+    addr.s_addr = ntohl(iph->saddr);
+    printf("--源IP地址：%s\n", inet_ntoa(addr));
+    addr.s_addr = ntohl(iph->saddr);
+    printf("--目的IP地址：%s\n", inet_ntoa(addr));
+}
+
 static int lcore_main(__attribute__((unused)) void *arg)
 {
     unsigned lcore_id = rte_lcore_id();
-    struct ether_hdr *eth_hdr;
+    struct ether_header *eth_hdr;
+    struct iphdr *iph_hdr;
 
     /*一条流的所有数据包的总长度之和是一个很大的数，需要用uint64_t类型*/
     uint64_t batch_len = 0;
@@ -113,7 +166,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
     uint8_t *pac_bytes[flow_batch_size] = {NULL};
     uint32_t pac_len[flow_batch_size] = {0};
 
-    uint8_t *flow = NULL;
+    uint8_t *flows = NULL;
     uint8_t *bytes = NULL;
     printf("\nlcore %u 接收数据包 [用Ctrl+C终止]\n", lcore_id);
     while (1)
@@ -124,37 +177,44 @@ static int lcore_main(__attribute__((unused)) void *arg)
         pthread_mutex_unlock(&lock);
         if (nb_rx)
         {
-            uint16_t _nb_rx = nb_rx;
+            uint16_t ipv4_nb_rx = 0;
             for (int i = 0; i < nb_rx; i++)
             {
-                unsigned pac_id = batch_nb + i;
-                if (pac_id >= flow_batch_size)
+                eth_hdr = rte_pktmbuf_mtod(bufs[i], struct ether_header *);
+                if (ntohs(eth_hdr->ether_type) == ETHERTYPE_IP)
                 {
-                    _nb_rx = i;
-                    break;
+                    iph_hdr = (struct iphdr *)(eth_hdr + 1);
+                    if (iph_hdr->protocol == 0x11 || iph_hdr->protocol == 0x06)
+                    {
+                        unsigned ipv4_pac_id = batch_nb + ipv4_nb_rx;
+                        if (ipv4_pac_id >= flow_batch_size)
+                        {
+                            break;
+                        }
+                        pac_len[ipv4_pac_id] = sizeof(struct ether_header) + ntohs(iph_hdr->tot_len);
+                        batch_len += pac_len[ipv4_pac_id];
+                        pac_bytes[ipv4_pac_id] = (uint8_t *)malloc(sizeof(uint8_t) * pac_len[ipv4_pac_id]);
+                        memcpy(pac_bytes[ipv4_pac_id], (uint8_t *)eth_hdr, pac_len[ipv4_pac_id]);
+                        printNetInfo(eth_hdr);
+                        ipv4_nb_rx++;
+                    }
                 }
-                pac_len[pac_id] = bufs[i]->pkt_len;
-                batch_len += pac_len[pac_id];
-                pac_bytes[pac_id] = (uint8_t *)malloc(sizeof(uint8_t) * pac_len[pac_id]);
-                eth_hdr = rte_pktmbuf_mtod(bufs[i], struct ether_hdr *);
-                memcpy(pac_bytes[pac_id], (uint8_t *)eth_hdr, pac_len[pac_id]);
                 rte_pktmbuf_free(bufs[i]);
             }
-            batch_nb += _nb_rx;
-            printf("lcore %u 已接收%u个数据包\n", lcore_id, batch_nb);
+
+            batch_nb += ipv4_nb_rx;
+            printf("lcore %u 已接收%u个3层协议为IPv4且4层协议为UDP或TCP的数据包\n", lcore_id, batch_nb);
             if (batch_nb >= flow_batch_size)
             {
-                printf("lcore %u 数据包的总长度为%lu\n", lcore_id, batch_len);
-                flow = (uint8_t *)malloc(sizeof(uint8_t) * batch_len);
-                bytes = flow;
+                flows = (uint8_t *)malloc(batch_len);
+                bytes = flows;
+                printf("lcore %u 该批次数据包的总长度为%lu\n", lcore_id, batch_len);
                 for (int i = 0; i < flow_batch_size; i++)
                 {
                     memcpy(bytes, pac_bytes[i], pac_len[i]);
                     bytes += pac_len[i];
                     free(pac_bytes[i]);
                 }
-                /*flow*/
-                //TODO 考虑多个批处理过程
                 break;
             }
         }
