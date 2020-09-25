@@ -7,12 +7,21 @@
 #include <algorithm>
 
 /*
-Θ 紧确界 f(x)=Θ(g(x)) lim(x->∞)(f(x)/g(x))=c>0
-O 上界 f(x)=O(g(x)) ∀x>x0>0 0<=f(x)<=c*g(x) c>0
-o 非紧上界 f(x)=O(g(x))
-Ω 下界 f(x)=Ω(g(x)) ∀x>x0>0 0<=f(x)<=c*g(x) c>0
-ω 非紧下界 相当于">"
+算法的时间复杂度
+基本操作的重复次数是关于问题规模的函数T(n)
+引入辅助函数f(n)，lim(n->∞)(T(n)/f(n))=c>0
+则O(f(n))为该算法的渐进时间复杂度
+
+算法的空间复杂度
+一般指算法用到的额外辅助空间的大小
+
+Θ 精确渐近行为 f(n)=Θ(g(n)) ∃n0、c1、c2>0，∀n>=n0，0<=c1*g(n)<=f(n)<=c2*g(n)
+O 上界 f(n)=O(g(n)) ∃n0、c>0，∀n>=n0，0<=f(n)<=c*g(n)
+o 非紧上界 f(n)=o(g(n)) ∃n0、c>0，∀n>n0，0<=f(n)<c*g(n)
+Ω 下界 f(n)=Ω(g(n)) ∃n0、c>0，∀n>=n0，0<=c*g(n)<=f(n)
+ω 非紧下界 f(n)=ω(g(n)) ∃n0、c>0，∀n>n0，0<=c*g(n)<f(n)
 */
+
 enum sortType
 {
     ascend,
@@ -49,7 +58,8 @@ void save(char *filename, long long *array, long long nb)
 最好Ω(n)
 平均θ(n^2)
 最坏n+n-1+n-2+...+2+1=n(n+1)/2 O(n^2)
-空间复杂度（辅助存储）：
+空间复杂度：
+在原数组实现排序
 O(1)
 */
 void bubbleSort(long long *array, long long nb, sortType st = ascend)
@@ -82,8 +92,8 @@ void bubbleSort(long long *array, long long nb, sortType st = ascend)
 最好Ω(nlog(2)n)=Ω(nlogn)
 平均θ(nlog(2)n)=θ(nlogn)
 最坏O(n^2)
-空间复杂度（辅助存储）：
-O(nlogn)
+空间复杂度：
+O(logn)-O(n)
 */
 void quickSort(long long *array, long long start, long long end, sortType st = ascend)
 {
