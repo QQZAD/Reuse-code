@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -180,7 +181,7 @@ void bubble()
     clock_gettime(CLOCK_MONOTONIC, &start);
     bubbleSort(b, NB);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    printf("bubbleSort-%lds\n", end.tv_sec - start.tv_sec);
+    printf("bubbleSort=%lfs\n", end.tv_sec - start.tv_sec + pow(10, -9) * (end.tv_nsec - start.tv_nsec));
     save((char *)"bubbleSort.txt", b, NB);
 }
 
@@ -191,7 +192,7 @@ void selection()
     clock_gettime(CLOCK_MONOTONIC, &start);
     selectionSort(b, NB);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    printf("selectionSort-%lds\n", end.tv_sec - start.tv_sec);
+    printf("selectionSort=%lfs\n", end.tv_sec - start.tv_sec + pow(10, -9) * (end.tv_nsec - start.tv_nsec));
     save((char *)"selectionSort.txt", b, NB);
 }
 
@@ -202,7 +203,7 @@ void quick()
     clock_gettime(CLOCK_MONOTONIC, &start);
     quickSort(b, 0, NB - 1);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    printf("quickSort-%lds\n", end.tv_sec - start.tv_sec);
+    printf("quickSort=%lfs\n", end.tv_sec - start.tv_sec + pow(10, -9) * (end.tv_nsec - start.tv_nsec));
     save((char *)"quickSort.txt", b, NB);
 }
 
@@ -242,7 +243,10 @@ int main()
 {
     generate(a, NB);
 
-    lambda();
+    bubble();
+    selection();
+    quick();
+    // lambda();
 
     free(b);
     return 0;
