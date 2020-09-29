@@ -6,6 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include <bits/stdint-uintn.h>
+#include <typeinfo>
 
 #define PRINTF_TO_FILE
 enum move
@@ -168,6 +169,12 @@ void inputPassword()
 {
     char *password = getpass("输入密码：");
     printf("%s\n", password);
+    char a = 10;
+    int b[3];
+    auto A = a;
+    auto &B = b;
+    printf("%s\n", typeid(A).name());
+    printf("%s\n", typeid(B).name());
 }
 
 int main()
@@ -180,8 +187,8 @@ int main()
     // backWorkDir();
     // pause_continue();
     // x86_64();
-    car();
-    // inputPassword();
+    // car();
+    inputPassword();
     return 0;
 }
 /*
