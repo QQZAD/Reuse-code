@@ -58,7 +58,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     }
     /*使用默认参数配置网络设备端口*/
     struct rte_eth_conf port_conf;
-    port_conf.link_speeds = 0;
+    port_conf.link_speeds = ETH_LINK_SPEED_AUTONEG;
     port_conf.rxmode.max_rx_pkt_len = RTE_ETHER_MAX_LEN;
     port_conf.rxmode.mq_mode = ETH_MQ_RX_NONE;
     port_conf.txmode.mq_mode = ETH_MQ_TX_NONE;
