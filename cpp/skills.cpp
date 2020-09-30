@@ -22,7 +22,7 @@ void newFolder(char *dirName)
     struct stat st = {0};
     if (stat(dirName, &st) == -1)
     {
-        mkdir(dirName, 0700);
+        mkdir(dirName, 0755);
     }
 }
 
