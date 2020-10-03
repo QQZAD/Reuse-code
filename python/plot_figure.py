@@ -6,11 +6,11 @@ import numpy as np
 import copy
 
 
-def plot_line(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
-    if x_orient != 'vertical' and x_orient != 'horizon':
-        print('plot_figure x_orient error!')
+def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+    if var_orient != 'vertical' and var_orient != 'horizon':
+        print('plot_figure var_orient error!')
         exit(1)
-    if x_orient == 'vertical':
+    if var_orient == 'vertical':
         y_data = list(map(list, zip(*y_data)))
     x_number = len(y_data[0])
     y_number = len(y_data)
@@ -18,13 +18,13 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、linestyle、marker
-    label = ['label1', 'label2', 'label3', 'lebal4']
+    label = ['Copy packets from the CPU to the GPU']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    color = ['green', 'red', 'darksalmon', 'gold']
+    color = ['red']
     # 线条风格 '-', '--', '-.', ':', 'None'
-    linestyle = ['-.', '--', ':', '--']
+    linestyle = ['-']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
-    marker = ['v', '^', 'o', 'h']
+    marker = ['v']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
@@ -55,11 +55,11 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
     plt.show()
 
 
-def plot_bar(x_data, y_data, save_path, x_label, y_label, x_orient='vertical'):
-    if x_orient != 'vertical' and x_orient != 'horizon':
-        print('plot_figure x_orient error!')
+def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+    if var_orient != 'vertical' and var_orient != 'horizon':
+        print('plot_figure var_orient error!')
         exit(1)
-    if x_orient == 'vertical':
+    if var_orient == 'vertical':
         y_data = list(map(list, zip(*y_data)))
     x_number = len(y_data[0])
     y_number = len(y_data)
@@ -177,16 +177,15 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
 
 
 if __name__ == '__main__':
-    x_data = [1, 2, 3, 4, 5]
-    y_data = [[8, 4, 7, 8, 9], [6, 7, 5, 12, 9],
-              [21, 3, 8, 15, 19], [3, 9, 6, 4, 12]]
-    fd.write_data('data.csv', y_data)
-    y_data = fd.read_data('data.csv')
-    # data = {'dsads': 2, 'dasfadsa': 54.67, 'fsdfsd': 4324}
+    data = fd.read_data('experiment1.txt')
+    x_data, y_data = fd.get_x_y_data(data, 1)
+    print(data)
+    print(x_data)
+    print(y_data)
     plot_line(x_data, y_data, 'data1.eps',
-              'asd dfgdg hfgf', 'f4354gfd', 'horizon')
-    plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
-    plot_stacked_bar(x_data, y_data, 'data3.eps',
-                     'dsdwwe', 'frd gtgthf', 'horizon')
+              'Batch size', 'The time overhead (s)', 'horizon')
+    # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
+    # plot_stacked_bar(x_data, y_data, 'data3.eps',
+    #                  'dsdwwe', 'frd gtgthf', 'horizon')
 
 # cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps

@@ -3,13 +3,14 @@
 import os
 import csv
 import json
+import numpy as np
 
 
 def read_data(path):
     suffix = os.path.splitext(path)[1]
     f = open(path, 'r')
+    data = []
     if suffix == '.csv':
-        data = []
         reader = csv.reader(f)
         for i in reader:
             temp = []
@@ -19,7 +20,12 @@ def read_data(path):
     elif suffix == '.json':
         data = json.load(f)
     else:
-        data = f.read()
+        lines = f.readlines()
+        for line in lines:
+            temp = line.strip('\n').split(' ')
+            for _ in range(len(temp)):
+                temp[_] = float(temp[_])
+            data.append(temp)
     f.close()
     return data
 
@@ -43,3 +49,14 @@ def write_data(path, data):
     else:
         f.write(str(data))
     f.close()
+
+
+def get_x_y_data(data, x_nb, var_orient='vertical'):
+    if var_orient != 'vertical' and var_orient != 'horizon':
+        print('get_x_y_data var_orient error!')
+        exit(1)
+    if var_orient == 'vertical':
+        data = list(map(list, zip(*data)))
+    x_data = list(data[0:x_nb][0])
+    y_data = list(data[x_nb:])
+    return x_data, y_data
