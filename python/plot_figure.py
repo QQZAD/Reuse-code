@@ -179,11 +179,8 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
 if __name__ == '__main__':
     data = fd.read_data('experiment1.txt')
     x_data, y_data = fd.get_x_y_data(data, 1)
-    print(data)
-    print(x_data)
-    print(y_data)
-    plot_line(x_data, y_data, 'data1.eps',
-              'Batch size', 'The time overhead (s)', 'horizon')
+    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+              'The time overhead (s)', 'horizon')
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
