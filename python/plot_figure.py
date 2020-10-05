@@ -187,10 +187,11 @@ if __name__ == '__main__':
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time overhead (s)', 'horizon')
     # fd.cal_avera_data('dc_ipsec/')
-    fd.sort_data_with_x('packet_addr_map/')
-    # x_data, y_data = fd.read_dir_data('ipv4_router/')
-    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-    #           'The time of ipv4 router (s)', 'horizon')
+    # fd.sort_data_with_x('packet_addr_map/')
+    # fd.sort_data_with_x('packet_data_copy/')
+    x_data, y_data = fd.read_dir_data('ids/')
+    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+              'The time of ipv4 router (s)', 'horizon')
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
