@@ -109,3 +109,10 @@ def cal_avera_data(dirname, var_orient='vertical'):
     filename = filename.translate(remove_digits)
     print(dirname+filename)
     write_data(dirname+filename, data)
+
+
+def sort_data_with_x(var_orient='vertical'):
+    data = np.array([[2, 2, 5], [2, 1, 3], [1, 2, 3], [3, 1, 4]])
+    idex = np.lexsort([data[:, 0]])
+    sorted_data = data[idex, :]
+    print(sorted_data)
