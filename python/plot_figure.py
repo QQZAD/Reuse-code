@@ -18,13 +18,18 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、linestyle、marker
-    label = ['Copy packets from the CPU to the GPU']
+    # label = ['Copy packets from the CPU to the GPU']
+    label = ['total time in normal copy mode',
+             'execution time in zero copy mode']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    color = ['red']
+    # color = ['red']
+    color = ['red', 'green']
     # 线条风格 '-', '--', '-.', ':', 'None'
-    linestyle = ['-']
+    # linestyle = ['-']
+    linestyle = ['-', ':']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
-    marker = ['v']
+    # marker = ['v']
+    marker = ['v', '^']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
@@ -177,10 +182,13 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
 
 
 if __name__ == '__main__':
-    data = fd.read_data('experiment1.txt')
-    x_data, y_data = fd.get_x_y_data(data, 1)
+    # data = fd.read_data('experiment1.txt')
+    # x_data, y_data = fd.get_x_y_data(data)
+    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+    #           'The time overhead (s)', 'horizon')
+    x_data, y_data = fd.read_dir_data('ipv4_router/')
     plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The time overhead (s)', 'horizon')
+              'The time of ipv4 router (s)', 'horizon')
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')

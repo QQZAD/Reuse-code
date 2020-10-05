@@ -51,12 +51,27 @@ def write_data(path, data):
     f.close()
 
 
-def get_x_y_data(data, x_nb, var_orient='vertical'):
+def get_x_y_data(data, var_orient='vertical'):
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('get_x_y_data var_orient error!')
         exit(1)
     if var_orient == 'vertical':
         data = list(map(list, zip(*data)))
-    x_data = list(data[0:x_nb][0])
-    y_data = list(data[x_nb:])
+    x_data = list(data[0:1][0])
+    y_data = list(data[1:])
+    return x_data, y_data
+
+
+def read_dir_data(dirname, var_orient='vertical'):
+    files = os.listdir(dirname)
+    y_data = []
+    for _ in files:
+        _ = dirname+_
+        print(_)
+        data = read_data(_)
+        # print(data)
+        x_data, _y_data = get_x_y_data(data, var_orient)
+        y_data.append(_y_data[0])
+    print(x_data)
+    print(y_data)
     return x_data, y_data
