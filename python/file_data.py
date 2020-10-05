@@ -4,6 +4,7 @@ import os
 import csv
 import json
 import numpy as np
+from string import digits
 
 
 def read_data(path):
@@ -47,7 +48,13 @@ def write_data(path, data):
         else:
             print('json文件用于保存字典类型！')
     else:
-        f.write(str(data))
+        for i in range(len(data)):
+            for j in range(len(data[0])):
+                f.write(str(data[i][j]))
+                if j == len(data[0])-1:
+                    f.write('\n')
+                else:
+                    f.write(' ')
     f.close()
 
 
@@ -75,3 +82,28 @@ def read_dir_data(dirname, var_orient='vertical'):
     print(x_data)
     print(y_data)
     return x_data, y_data
+
+
+def cal_avera_data(dirname, var_orient='vertical'):
+    files = os.listdir(dirname)
+    temp = read_data(dirname+files[0])
+    height = len(temp)
+    width = len(temp[0])
+    data = [[0 for j in range(width)] for i in range(height)]
+    index = 0
+    for _ in files:
+        _ = dirname+_
+        print(_)
+        temp = read_data(_)
+        index += 1
+        for i in range(height):
+            for j in range(width):
+                data[i][j] += temp[i][j]
+    for i in range(height):
+        for j in range(width):
+            data[i][j] /= index
+    filename = files[0]
+    remove_digits = str.maketrans('', '', digits)
+    filename = filename.translate(remove_digits)
+    print(dirname+filename)
+    write_data(dirname+filename, data)

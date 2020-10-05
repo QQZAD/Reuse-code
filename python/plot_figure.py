@@ -186,9 +186,10 @@ if __name__ == '__main__':
     # x_data, y_data = fd.get_x_y_data(data)
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time overhead (s)', 'horizon')
-    x_data, y_data = fd.read_dir_data('ipv4_router/')
-    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The time of ipv4 router (s)', 'horizon')
+    fd.cal_avera_data('dc_ids/')
+    # x_data, y_data = fd.read_dir_data('ipv4_router/')
+    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+    #           'The time of ipv4 router (s)', 'horizon')
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
