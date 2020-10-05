@@ -111,8 +111,24 @@ def cal_avera_data(dirname, var_orient='vertical'):
     write_data(dirname+filename, data)
 
 
-def sort_data_with_x(var_orient='vertical'):
-    data = np.array([[2, 2, 5], [2, 1, 3], [1, 2, 3], [3, 1, 4]])
-    idex = np.lexsort([data[:, 0]])
-    sorted_data = data[idex, :]
-    print(sorted_data)
+def sort_data_with_x(dirname, var_orient='vertical'):
+    files = os.listdir(dirname)
+    temp = read_data(dirname+files[0])
+    height = len(temp)
+    width = len(temp[0])
+    data = [[0 for j in range(width)] for i in range(height)]
+    for _ in files:
+        _ = dirname+_
+        print(_)
+        temp = read_data(_)
+        temp = np.array(temp)
+        idex = np.lexsort([temp[:, 0]])
+        temp = temp[idex, :]
+        for i in range(height):
+            for j in range(width):
+                if j == 0:
+                    data[i][j] = int(temp[i][j])
+                else:
+                    data[i][j] = temp[i][j]
+        # print(data)
+        write_data(_, data)
