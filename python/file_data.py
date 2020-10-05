@@ -102,6 +102,8 @@ def cal_avera_data(dirname, var_orient='vertical'):
     for i in range(height):
         for j in range(width):
             data[i][j] /= index
+            if j == 0:
+                data[i][j] = int(data[i][j])
     filename = files[0]
     remove_digits = str.maketrans('', '', digits)
     filename = filename.translate(remove_digits)

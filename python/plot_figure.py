@@ -186,7 +186,7 @@ if __name__ == '__main__':
     # x_data, y_data = fd.get_x_y_data(data)
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time overhead (s)', 'horizon')
-    fd.cal_avera_data('dc_ids/')
+    fd.cal_avera_data('dc_ipsec/')
     # x_data, y_data = fd.read_dir_data('ipv4_router/')
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time of ipv4 router (s)', 'horizon')
