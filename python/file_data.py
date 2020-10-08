@@ -132,3 +132,9 @@ def sort_data_with_x(dirname, var_orient='vertical'):
                     data[i][j] = temp[i][j]
         # print(data)
         write_data(_, data)
+
+
+def data_classify(dirname):
+    os.path.exists(path)
+    os.makedirs(path)
+    os.mkdir(path)
