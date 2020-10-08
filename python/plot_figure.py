@@ -187,15 +187,15 @@ if __name__ == '__main__':
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time overhead (s)', 'horizon')
 
-    # x_data, y_data = fd.read_dir_data('exp_data/ids/')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ids/')
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The total time of ids (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('exp_data/ipsec/')
+    x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
     plot_line(x_data, y_data, 'data1.eps', 'Batch size',
               'The total time of ipsec (s)', 'horizon')
 
-    # x_data, y_data = fd.read_dir_data('exp_data/ipv4_router/')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The total time of ipv4 router (s)', 'horizon')
 
