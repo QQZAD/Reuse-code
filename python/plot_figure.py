@@ -187,6 +187,8 @@ if __name__ == '__main__':
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The time overhead (s)', 'horizon')
 
+    # fd.data_classify()
+
     # x_data, y_data = fd.read_dir_data('ptm_data/ids/')
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
     #           'The total time of ids (s)', 'horizon')

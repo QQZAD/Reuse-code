@@ -3,6 +3,7 @@
 import os
 import csv
 import json
+import shutil
 import numpy as np
 from string import digits
 
@@ -134,7 +135,38 @@ def sort_data_with_x(dirname, var_orient='vertical'):
         write_data(_, data)
 
 
-def data_classify(dirname):
-    os.path.exists(path)
-    os.makedirs(path)
-    os.mkdir(path)
+def data_classify():
+    if not os.path.exists('ptm_data/'):
+        os.mkdir('ptm_data/')
+    if not os.path.exists('ptm_data/ids/'):
+        os.mkdir('ptm_data/ids/')
+    if not os.path.exists('ptm_data/ipsec/'):
+        os.mkdir('ptm_data/ipsec/')
+    if not os.path.exists('ptm_data/ipv4_router/'):
+        os.mkdir('ptm_data/ipv4_router/')
+    if not os.path.exists('packet_addr_map'):
+        print('没有找到packet_addr_map文件夹')
+        exit(1)
+    if not os.path.exists('packet_data_copy'):
+        print('没有找到packet_data_copy文件夹')
+        exit(1)
+    files_dc = os.listdir('packet_data_copy')
+    files_am = os.listdir('packet_addr_map')
+    for _ in files_dc:
+        print(_)
+        if 'ids' in _:
+            shutil.move('packet_data_copy/'+_, 'ptm_data/ids/'+_)
+        elif 'ipsec' in _:
+            shutil.move('packet_data_copy/'+_, 'ptm_data/ipsec/'+_)
+        elif 'ipv4_router' in _:
+            shutil.move('packet_data_copy/'+_, 'ptm_data/ipv4_router/'+_)
+    for _ in files_am:
+        print(_)
+        if 'ids' in _:
+            shutil.move('packet_addr_map/'+_, 'ptm_data/ids/'+_)
+        elif 'ipsec' in _:
+            shutil.move('packet_addr_map/'+_, 'ptm_data/ipsec/'+_)
+        elif 'ipv4_router' in _:
+            shutil.move('packet_addr_map/'+_, 'ptm_data/ipv4_router/'+_)
+    os.rmdir('packet_data_copy/')
+    os.rmdir('packet_addr_map/')
