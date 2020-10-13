@@ -188,18 +188,21 @@ if __name__ == '__main__':
     #           'The time overhead (s)', 'horizon')
 
     fd.data_classify()
+    fd.cal_avera_data('ptm_data/ids/')
+    fd.cal_avera_data('ptm_data/ipsec/')
+    fd.cal_avera_data('ptm_data/ipv4_router/')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ids/')
-    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The total time of ids (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ids/')
+    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+    #           'The total time of IDS (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
-    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The total time of ipsec (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
+    # plot_line(x_data, y_data, 'data2.eps', 'Batch size',
+    #           'The total time of IPsec (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
-    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The total time of ipv4 router (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
+    # plot_line(x_data, y_data, 'data3.eps', 'Batch size',
+    #           'The total time of IPv4 Router (s)', 'horizon')
 
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
