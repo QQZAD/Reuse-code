@@ -23,15 +23,6 @@ static float *_data;
 */
 static __device__ float *deviceData;
 
-float frand(int a, int b, int delta = 6)
-{
-    assert(b >= a);
-    b *= pow(10, delta);
-    a *= pow(10, delta);
-    float d = pow(10, -delta);
-    return (rand() % (b - a + 1) + a) * d;
-}
-
 __global__ void kernel()
 {
     int threadId = threadIdx.x;
@@ -47,7 +38,7 @@ int main()
     float data[DATA_SIZE];
     for (int i = 0; i < DATA_SIZE; i++)
     {
-        data[i] = frand(10, 50);
+        data[i] = (i + 10) * 3.689;
         printf("START-%f\n", data[i]);
     }
     cudaMalloc((void **)&_data, bytes);

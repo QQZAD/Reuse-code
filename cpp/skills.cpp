@@ -7,6 +7,11 @@
 #include <math.h>
 #include <bits/stdint-uintn.h>
 #include <typeinfo>
+#include <assert.h>
+#include <time.h>
+
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define PRINTF_TO_FILE
 enum move
@@ -177,6 +182,31 @@ void inputPassword()
     printf("%s\n", typeid(B).name());
 }
 
+float frand(int a, int b, int delta = 6)
+{
+    time_t t;
+    assert(b >= a);
+    b *= pow(10, delta);
+    a *= pow(10, delta);
+    float d = pow(10, -delta);
+    srand((unsigned)time(&t));
+    return (rand() % (b - a + 1) + a) * d;
+}
+
+void cpuPrefetch()
+{
+    float like = frand(0, 1);
+    if (likely(like >= 0 && like <= 0.8))
+    {
+        printf("like=%f\n", like);
+    }
+    float unlike = frand(0, 1);
+    if (unlikely(unlike >= 0.8 && unlike <= 1))
+    {
+        printf("unlike=%f\n", unlike);
+    }
+}
+
 int main()
 {
     // strCat(5);
@@ -188,7 +218,8 @@ int main()
     // pause_continue();
     // x86_64();
     // car();
-    inputPassword();
+    // inputPassword();
+    cpuPrefetch();
     return 0;
 }
 /*
