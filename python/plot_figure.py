@@ -192,20 +192,20 @@ if __name__ == '__main__':
     # fd.cal_avera_data('ptm_data/ipsec/')
     # fd.cal_avera_data('ptm_data/ipv4_router/')
 
-    # x_data, y_data = fd.read_dir_data('ptm_data/ids/')
-    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-    #           'The total time of IDS (s)', 'horizon')
+    x_data, y_data = fd.read_dir_data('ptm_data/ids/')
+    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+              'The λ of IDS (s)', 'horizon')
 
-    # x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
-    # plot_line(x_data, y_data, 'data2.eps', 'Batch size',
-    #           'The total time of IPsec (s)', 'horizon')
+    x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
+    plot_line(x_data, y_data, 'data2.eps', 'Batch size',
+              'The λ of IPsec (s)', 'horizon')
 
     x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
     plot_line(x_data, y_data, 'data3.eps', 'Batch size',
-              'The total time of IPv4 Router (s)', 'horizon')
+              'The λ of IPv4 Router (s)', 'horizon')
 
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
 
-# cd python;rm -rf __pycache__;cd ..;rm -rf ptm_data data.csv data1.eps data2.eps data3.eps
+# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps

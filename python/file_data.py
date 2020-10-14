@@ -73,6 +73,10 @@ def get_x_y_data(data, var_orient='vertical'):
 def read_dir_data(dirname, var_orient='vertical'):
     files = os.listdir(dirname)
     y_data = []
+    if 'am' in files[0]:
+        temp = files[0]
+        files[0] = files[1]
+        files[1] = temp
     for _ in files:
         _ = dirname+_
         print(_)
