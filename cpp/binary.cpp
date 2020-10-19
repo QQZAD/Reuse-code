@@ -138,9 +138,12 @@ void bitsOperate()
     i <<= 5;
     printBinary(sizeof(int), (void *)&i);
     /*
-    右移一位代表除2，
+    右移一位代表除2，左边补0
+    然而字节在内存中是以二进制补码形式储存的
+    实际上
     对于有符号数，左边补符号位
     对于无符号数，左边补0
+    仔细思考就会发现这并不冲突
     */
     i >>= 3;
     printBinary(sizeof(int), (void *)&i);
