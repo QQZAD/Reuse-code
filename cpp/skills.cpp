@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <time.h>
 
+#define __zad__
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
@@ -207,6 +208,53 @@ void cpuPrefetch()
     }
 }
 
+/*
+联合类型的所有成员从同一内存地址开始
+主机顺序__LITTLE_ENDIAN
+地址的低位存储值的低位
+修改任何一个成员都会导致其他成员的值发生变化
+*/
+union __zad__ Union
+{
+    char a;
+    short b;
+    int c;
+};
+
+/*
+union和struct可以相互嵌套
+且嵌套在内部的union或struct可以没有名称
+*/
+union un
+{
+    int a;
+    union
+    {
+        int b;
+        int c;
+    };
+};
+
+struct st
+{
+    int a;
+    struct
+    {
+        int b;
+        int c;
+    };
+};
+
+void learnUnion()
+{
+    Union u;
+    printf("%ld\n", sizeof(Union));
+    u.c = 52;
+    printf("%d %d %d\n", u.a, u.b, u.c);
+    u.c = 25;
+    printf("%d %d %d\n", u.a, u.b, u.c);
+}
+
 int main()
 {
     // strCat(5);
@@ -219,7 +267,8 @@ int main()
     // x86_64();
     // car();
     // inputPassword();
-    cpuPrefetch();
+    // cpuPrefetch();
+    learnUnion();
     return 0;
 }
 /*
