@@ -148,6 +148,8 @@ def data_classify():
         os.mkdir('ptm_data/ipsec/')
     if not os.path.exists('ptm_data/ipv4_router/'):
         os.mkdir('ptm_data/ipv4_router/')
+    if not os.path.exists('ptm_data/nat/'):
+        os.mkdir('ptm_data/nat/')
     if not os.path.exists('packet_addr_map'):
         print('没有找到packet_addr_map文件夹')
         exit(1)
@@ -164,6 +166,8 @@ def data_classify():
             shutil.move('packet_data_copy/'+_, 'ptm_data/ipsec/'+_)
         elif 'ipv4_router' in _:
             shutil.move('packet_data_copy/'+_, 'ptm_data/ipv4_router/'+_)
+        elif 'nat' in _:
+            shutil.move('packet_data_copy/'+_, 'ptm_data/nat/'+_)
     for _ in files_am:
         print(_)
         if 'ids' in _:
@@ -172,5 +176,7 @@ def data_classify():
             shutil.move('packet_addr_map/'+_, 'ptm_data/ipsec/'+_)
         elif 'ipv4_router' in _:
             shutil.move('packet_addr_map/'+_, 'ptm_data/ipv4_router/'+_)
+        elif 'nat' in _:
+            shutil.move('packet_addr_map/'+_, 'ptm_data/nat/'+_)
     os.rmdir('packet_data_copy/')
     os.rmdir('packet_addr_map/')

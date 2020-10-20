@@ -191,6 +191,7 @@ if __name__ == '__main__':
     # fd.cal_avera_data('ptm_data/ids/')
     # fd.cal_avera_data('ptm_data/ipsec/')
     # fd.cal_avera_data('ptm_data/ipv4_router/')
+    # fd.cal_avera_data('ptm_data/nat/')
 
     x_data, y_data = fd.read_dir_data('ptm_data/ids/')
     plot_line(x_data, y_data, 'data1.eps', 'Batch size',
@@ -204,8 +205,12 @@ if __name__ == '__main__':
     plot_line(x_data, y_data, 'data3.eps', 'Batch size',
               'The λ of IPv4 Router (s)', 'horizon')
 
+    x_data, y_data = fd.read_dir_data('ptm_data/nat/')
+    plot_line(x_data, y_data, 'data4.eps', 'Batch size',
+              'The λ of NAT (s)', 'horizon')
+
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data3.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
 
-# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps
+# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps data4.eps
