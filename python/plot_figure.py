@@ -18,18 +18,18 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、linestyle、marker
-    # label = ['The copy time of the packet from CPU to GPU']
-    label = ['Normal copy mode',
-             'Zero-copy mode']
+    label = ['Copy 3072 packets at a time']
+    # label = ['Normal copy mode',
+    #          'Zero-copy mode']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    # color = ['red']
-    color = ['red', 'green']
+    color = ['red']
+    # color = ['red', 'green']
     # 线条风格 '-', '--', '-.', ':', 'None'
-    # linestyle = ['-']
-    linestyle = ['-', '--']
+    linestyle = ['-']
+    # linestyle = ['-', '--']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
-    # marker = ['v']
-    marker = ['v', '^']
+    marker = ['v']
+    # marker = ['v', '^']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
@@ -193,24 +193,30 @@ if __name__ == '__main__':
     # fd.cal_avera_data('ptm_data/ipv4_router/')
     # fd.cal_avera_data('ptm_data/nat/')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ids/')
-    plot_line(x_data, y_data, 'data1.eps', 'Batch size',
-              'The λ of IDS (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ids/')
+    # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
+    #           'The λ of IDS (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
-    plot_line(x_data, y_data, 'data2.eps', 'Batch size',
-              'The λ of IPsec (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ipsec/')
+    # plot_line(x_data, y_data, 'data2.eps', 'Batch size',
+    #           'The λ of IPsec (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
-    plot_line(x_data, y_data, 'data3.eps', 'Batch size',
-              'The λ of IPv4 Router (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/ipv4_router/')
+    # plot_line(x_data, y_data, 'data3.eps', 'Batch size',
+    #           'The λ of IPv4 Router (s)', 'horizon')
 
-    x_data, y_data = fd.read_dir_data('ptm_data/nat/')
-    plot_line(x_data, y_data, 'data4.eps', 'Batch size',
-              'The λ of NAT (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('ptm_data/nat/')
+    # plot_line(x_data, y_data, 'data4.eps', 'Batch size',
+    #           'The λ of NAT (s)', 'horizon')
+
+    # fd.cal_avera_data('pcie_competition/')
+
+    x_data, y_data = fd.read_dir_data('pcie_competition/')
+    plot_line(x_data, y_data, 'data5.eps', 'Number of flows',
+              'Average latency of data copy (s)', 'horizon')
 
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
-    # plot_stacked_bar(x_data, y_data, 'data3.eps',
+    # plot_stacked_bar(x_data, y_data, 'data6.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
 
-# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps data4.eps
+# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps data4.eps data5.eps data6.eps

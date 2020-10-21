@@ -89,6 +89,7 @@ def read_dir_data(dirname, var_orient='vertical'):
     return x_data, y_data
 
 
+# 计算平均值时自动去除奇异点
 def cal_avera_data(dirname, var_orient='vertical'):
     files = os.listdir(dirname)
     temp = read_data(dirname+files[0])
