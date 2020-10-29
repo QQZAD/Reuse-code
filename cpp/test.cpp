@@ -88,7 +88,7 @@
 #include <vector>
 using namespace std;
 
-#define CORE 8
+#define CORE 2
 
 int a[2][100];
 
@@ -123,7 +123,7 @@ int main()
     Args par;
     par.start = 0;
     par.size = size;
-    time_t t1, t2;
+    clock_t t1, t2;
     t1 = clock();
     thread_fun(&par);
     t2 = clock();
@@ -135,7 +135,7 @@ int main()
     for (int i = 0; i < CORE; i++)
     {
         parg[i].start = i * unit;
-        parg[i].size = (i + 1) * unit;
+        parg[i].size = (i + 1) * unit - 1;
     }
     t1 = clock();
     for (int i = 0; i < CORE; i++)
@@ -164,7 +164,7 @@ int main()
     // obj2.join();
     cout << t2 - t1 << endl;
 
-    getchar();
+    // getchar();
     return 0;
 }
 
