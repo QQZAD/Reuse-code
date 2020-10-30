@@ -99,25 +99,35 @@ struct Args
 };
 
 int sum = 0;
-void *thread_fun(void *argc)
+// void *thread_fun(void *argc)
+// {
+//     long start = ((Args *)argc)->start;
+//     long size = ((Args *)argc)->size;
+//     long temp = 0;
+//     for (long i = start; i < size; i++)
+//     {
+//         for (int j = 0; j < 999; j++)
+//         {
+//             temp += j;
+//         }
+//         // cout << i << endl;
+//     }
+//     return NULL;
+// }
+
+void thread_fun(long start, long size)
 {
-    long start = ((Args *)argc)->start;
-    long size = ((Args *)argc)->size;
-    long temp = 0;
+    // long temp = 0;
     for (long i = start; i < size; i++)
     {
-        for (int j = 0; j < 999; j++)
-        {
-            temp += j;
-        }
+        // temp += i;
         // cout << i << endl;
     }
-    return NULL;
 }
 
 int main()
 {
-    long size = 8000000;
+    long size = 80000000;
     long unit = size / CORE;
 
     Args par;
@@ -125,29 +135,42 @@ int main()
     par.size = size;
     clock_t t1, t2;
     t1 = clock();
-    thread_fun(&par);
+    // thread_fun(&par);
+    // thread_fun(0, size);
+
+    thread obj(thread_fun, 0, size);
+    obj.join();
     t2 = clock();
     cout << t2 - t1 << endl;
 
-    pthread_t pth[CORE];
-    Args parg[CORE];
+    // pthread_t pth[CORE];
+    // Args parg[CORE];
 
-    for (int i = 0; i < CORE; i++)
-    {
-        parg[i].start = i * unit;
-        parg[i].size = (i + 1) * unit - 1;
-    }
-    t1 = clock();
-    for (int i = 0; i < CORE; i++)
-    {
-        pthread_create(&pth[i], NULL, thread_fun, (void *)(parg + i));
-    }
+    // for (int i = 0; i < CORE; i++)
+    // {
+    //     parg[i].start = i * unit;
+    //     parg[i].size = (i + 1) * unit - 1;
+    // }
+    // t1 = clock();
+    // for (int i = 0; i < CORE; i++)
+    // {
+    //     pthread_create(&pth[i], NULL, thread_fun, (void *)(parg + i));
+    // }
 
-    for (int i = 0; i < CORE; i++)
-    {
-        pthread_join(pth[1], NULL);
-    }
-    t2 = clock();
+    // for (int i = 0; i < CORE; i++)
+    // {
+    //     pthread_join(pth[1], NULL);
+    // }
+    // t2 = clock();
+
+    clock_t t3, t4;
+    t3 = clock();
+    thread obj1(thread_fun, 0, unit);
+    thread obj2(thread_fun, unit, size);
+    obj1.join();
+    obj2.join();
+    t4 = clock();
+
     // vector<thread> pth;
     // t1 = clock();
     // for (int i = 0; i < CORE; i++)
@@ -162,7 +185,7 @@ int main()
     //thread obj2(thread_fun, unit, size);
     // thread_fun(unit, size);
     // obj2.join();
-    cout << t2 - t1 << endl;
+    cout << t4 - t3 << endl;
 
     // getchar();
     return 0;
