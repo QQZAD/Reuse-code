@@ -83,7 +83,8 @@ def read_dir_data(dirname, var_orient='vertical'):
         data = read_data(_)
         # print(data)
         x_data, _y_data = get_x_y_data(data, var_orient)
-        y_data.append(_y_data[0])
+        for item in range(len(_y_data)):
+            y_data.append(_y_data[item])
     print(x_data)
     print(y_data)
     return x_data, y_data
