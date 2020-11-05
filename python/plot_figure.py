@@ -21,22 +21,21 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
     # label = ['']
     # label = ['Normal copy mode',
     #          'Zero-copy mode']
-    label = ['Copy 1024 packets at a time',
-             'Copy 2048 packets at a time']
-    # label = ['Serial PCIe',
-    #          'Parallel PCIe']
+    # label = ['Copy 1024 packets at a time',
+    #          'Copy 2048 packets at a time']
+    label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
     # color = ['red']
-    color = ['red', 'green']
-    # color = ['red', 'green', 'black']
+    # color = ['red', 'green']
+    color = ['red', 'green', 'black']
     # 线条风格 '-', '--', '-.', ':', 'None'
     # linestyle = ['-']
-    linestyle = ['-', '--']
-    # linestyle = ['-', '--', '-.']
+    # linestyle = ['-', '--']
+    linestyle = ['-', '--', '-.']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
     # marker = ['o']
-    marker = ['v', '^']
-    # marker = ['v', '^', 'o']
+    # marker = ['v', '^']
+    marker = ['v', '^', 'o']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
