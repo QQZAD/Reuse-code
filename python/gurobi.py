@@ -1,9 +1,5 @@
 #!/usr/bin/python3
 # -*- coding:utf-8 -*-
-# tar -xf gurobi9.1.0_linux64.tar.gz
-# cd gurobi910/linux64
-# sudo python3 setup.py install
-# rm -rf gurobi910
 import gurobipy as gp
 from gurobipy import GRB
 
