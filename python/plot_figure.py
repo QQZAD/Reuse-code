@@ -18,24 +18,24 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、linestyle、marker
-    # label = ['']
+    label = ['']
     # label = ['Normal copy mode',
     #          'Zero-copy mode']
     # label = ['Copy 1024 packets at a time',
     #          'Copy 2048 packets at a time']
-    label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
+    # label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    # color = ['red']
+    color = ['red']
     # color = ['red', 'green']
-    color = ['red', 'green', 'black']
+    # color = ['red', 'green', 'black']
     # 线条风格 '-', '--', '-.', ':', 'None'
-    # linestyle = ['-']
+    linestyle = ['-']
     # linestyle = ['-', '--']
-    linestyle = ['-', '--', '-.']
+    # linestyle = ['-', '--', '-.']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
-    # marker = ['o']
+    marker = ['o']
     # marker = ['v', '^']
-    marker = ['v', '^', 'o']
+    # marker = ['v', '^', 'o']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
@@ -188,6 +188,11 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
 
 
 if __name__ == '__main__':
+    x_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    y_data = [[12, 13, 52, 61, 23, 45, 15, 44, 42, 39]]
+    plot_line(x_data, y_data, 'data.eps', 'Number of flows',
+              'Average latency of data copy (s)', 'horizon')
+
     # data = fd.read_data('copy_time_batch/experiment1.txt')
     # x_data, y_data = fd.get_x_y_data(data)
     # plot_line(x_data, y_data, 'data1.eps', 'Batch size',
@@ -216,12 +221,12 @@ if __name__ == '__main__':
     #           'The λ of NAT (s)', 'horizon')
 
     # fd.cal_avera_data('pcie_competition/')
-    x_data, y_data = fd.read_dir_data('pcie_competition/')
-    plot_line(x_data, y_data, 'data5.eps', 'Number of flows',
-              'Average latency of data copy (s)', 'horizon')
+    # x_data, y_data = fd.read_dir_data('pcie_competition/')
+    # plot_line(x_data, y_data, 'data5.eps', 'Number of flows',
+    #           'Average latency of data copy (s)', 'horizon')
 
     # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
     # plot_stacked_bar(x_data, y_data, 'data6.eps',
     #                  'dsdwwe', 'frd gtgthf', 'horizon')
 
-# cd python;rm -rf __pycache__;cd ..;rm -rf data.csv data1.eps data2.eps data3.eps data4.eps data5.eps data6.eps
+    # cd python;rm -rf __pycache__;cd ..;rm -rf data.eps data.csv data1.eps data2.eps data3.eps data4.eps data5.eps data6.eps
