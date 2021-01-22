@@ -18,24 +18,24 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、linestyle、marker
-    label = ['']
+    # label = ['']
     # label = ['Normal copy mode',
     #          'Zero-copy mode']
     # label = ['Copy 1024 packets at a time',
     #          'Copy 2048 packets at a time']
-    # label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
+    label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    color = ['red']
+    # color = ['red']
     # color = ['red', 'green']
-    # color = ['red', 'green', 'black']
+    color = ['red', 'green', 'black']
     # 线条风格 '-', '--', '-.', ':', 'None'
-    linestyle = ['-']
+    # linestyle = ['-']
     # linestyle = ['-', '--']
-    # linestyle = ['-', '--', '-.']
+    linestyle = ['-', '--', '-.']
     # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
-    marker = ['o']
+    # marker = ['o']
     # marker = ['v', '^']
-    # marker = ['v', '^', 'o']
+    marker = ['v', '^', 'o']
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
@@ -78,11 +78,11 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
         print('x_data和y_data不匹配！')
         exit(1)
     # 设置y_data的label、color、hatch
-    label = ['label1', 'label2', 'label3', 'label4']
+    label = ['label1', 'label2', 'label3']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    color = ['green', 'red', 'blue', 'yellow']
+    color = ['green', 'red', 'blue']
     # 填充效果 '/', '|', '-', '+', 'x', 'o', 'O', '.', '*', ' '
-    hatch = ['x', '.', '|', 'o']
+    hatch = ['x', '.', '|']
     if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
@@ -118,6 +118,7 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
 
 
 def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+    print('在堆叠柱状图中序号小的y_data位于柱状图下层')
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('plot_figure var_orient error!')
         exit(1)
@@ -143,11 +144,11 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
             prop_y_data[i][j] = round(
                 y_data[i][j]/_y_data[y_number-1][j], decimal)
     # 设置y_data的label、color、hatch
-    label = ['label1', 'label2', 'label3', 'label4']
+    label = ['label1', 'label2', 'label3']
     # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
-    color = ['green', 'red', 'darksalmon', 'yellow']
+    color = ['green', 'red', 'darksalmon']
     # 填充效果 '/', '|', '-', '+', 'x', 'o', 'O', '.', '*', ' '
-    hatch = [' ', ' ', ' ', ' ']
+    hatch = [' ', ' ', ' ']
     if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
@@ -187,11 +188,25 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
     plt.show()
 
 
+def benchmark():
+    x_data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    y_data = [[3, 13, 5, 7, 9, 10, 2, 1, 0],
+              [6, 3, 8, 4, 9, 14, 9, 2, 7],
+              [7, 9, 5, 8, 5, 3, 9, 7, 2]]
+    plot_line(x_data, y_data, 'data1.eps', 'xlabel', 'ylabel', 'horizon')
+    plot_bar(x_data, y_data, 'data2.eps', 'xlabel', 'ylabel', 'horizon')
+    plot_stacked_bar(x_data, y_data, 'data3.eps',
+                     'xlabel', 'ylabel', 'horizon')
+
+    # cd python;rm -rf __pycache__;cd ..;rm -rf data1.eps data2.eps data3.eps
+
+
 if __name__ == '__main__':
-    x_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    y_data = [[12, 13, 52, 61, 23, 45, 15, 44, 42, 39]]
-    plot_line(x_data, y_data, 'data.eps', 'Number of flows',
-              'Average latency of data copy (s)', 'horizon')
+    benchmark()
+    # x_data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    # y_data = [[12, 13, 52, 61, 23, 45, 15, 44, 42, 39]]
+    # plot_line(x_data, y_data, 'data.eps', 'Number of flows',
+    #           'Average latency of data copy (s)', 'horizon')
 
     # data = fd.read_data('copy_time_batch/experiment1.txt')
     # x_data, y_data = fd.get_x_y_data(data)
@@ -225,8 +240,4 @@ if __name__ == '__main__':
     # plot_line(x_data, y_data, 'data5.eps', 'Number of flows',
     #           'Average latency of data copy (s)', 'horizon')
 
-    # plot_bar(x_data, y_data, 'data2.eps', '12fds', 'ju879', 'horizon')
-    # plot_stacked_bar(x_data, y_data, 'data6.eps',
-    #                  'dsdwwe', 'frd gtgthf', 'horizon')
-
-    # cd python;rm -rf __pycache__;cd ..;rm -rf data.eps data.csv data1.eps data2.eps data3.eps data4.eps data5.eps data6.eps
+    # cd python;rm -rf __pycache__;cd ..;rm -rf data.eps data.csv data1.eps data2.eps data3.eps data4.eps data5.eps
