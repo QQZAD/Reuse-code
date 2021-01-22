@@ -22,12 +22,7 @@ def read_data(path):
     elif suffix == '.json':
         data = json.load(f)
     else:
-        lines = f.readlines()
-        for line in lines:
-            temp = line.strip('\n').split(' ')
-            for _ in range(len(temp)):
-                temp[_] = float(temp[_])
-            data.append(temp)
+        data = np.loadtxt(path).tolist()
     f.close()
     return data
 
