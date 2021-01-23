@@ -41,7 +41,7 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         exit(1)
     # plt.title('title')
     # 设置字体和大小
-    plt.rc('font', family='Times New Roman', size=17)
+    plt.rc('font', family='Times New Roman', size=15)
     # 设置x轴的标签
     plt.xlabel(x_label)
     # 设置x轴的范围
@@ -56,7 +56,7 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
         plt.scatter(x_data, y_data[_], color=color[_], marker=marker[_], s=50)
     # 'x' 'y' 'both'
     plt.grid(axis='y')
-    plt.legend()
+    plt.legend(loc=1)
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
@@ -88,7 +88,7 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
         exit(1)
     # plt.title('title')
     # 设置字体和大小
-    plt.rc('font', family='Times New Roman', size=17)
+    plt.rc('font', family='Times New Roman', size=15)
     # 设置柱状体的宽度
     bar_width = 0.20
     # 设置x轴的标签
@@ -106,7 +106,7 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
                 y_data[_], label=label[_], color=color[_], hatch=hatch[_], width=bar_width)
     # 'x' 'y' 'both'
     plt.grid(axis='y')
-    plt.legend()
+    plt.legend(loc=1)
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
@@ -154,7 +154,7 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
         exit(1)
     # plt.title('title')
     # 设置字体和大小
-    plt.rc('font', family='Times New Roman', size=17)
+    plt.rc('font', family='Times New Roman', size=15)
     # 设置柱状体的宽度
     bar_width = 0.6
     # 设置x轴的标签
@@ -177,7 +177,7 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
                 prop_y_data[i][j]), ha='center', va='center', fontsize=14)
     # 'x' 'y' 'both'
     plt.grid(axis='y')
-    plt.legend()
+    plt.legend(loc=1)
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
