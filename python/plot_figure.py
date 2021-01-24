@@ -39,9 +39,9 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
     if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
-    # plt.title('title')
     # 设置字体和大小
     plt.rc('font', family='Times New Roman', size=15)
+    # plt.title('title')
     # 设置x轴的标签
     plt.xlabel(x_label)
     # 设置x轴的范围
@@ -86,9 +86,9 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
     if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
-    # plt.title('title')
     # 设置字体和大小
     plt.rc('font', family='Times New Roman', size=15)
+    # plt.title('title')
     # 设置柱状体的宽度
     bar_width = 0.20
     # 设置x轴的标签
@@ -152,9 +152,9 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
     if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
-    # plt.title('title')
     # 设置字体和大小
     plt.rc('font', family='Times New Roman', size=15)
+    # plt.title('title')
     # 设置柱状体的宽度
     bar_width = 0.6
     # 设置x轴的标签
