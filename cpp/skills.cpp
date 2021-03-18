@@ -278,7 +278,8 @@ int main()
     // inputPassword();
     // cpuPrefetch();
     // learnUnion();
-    printf("%d\n", x);
+    int a(5), b(3);
+    printf("%d,%d,%d,%d\n", x, a, b, a || b);
     return 0;
 }
 /*
