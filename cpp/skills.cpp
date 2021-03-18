@@ -255,12 +255,13 @@ void learnUnion()
     printf("%d %d %d\n", u.a, u.b, u.c);
 }
 
-enum string{    
-    x1,    
-    x2,    
-    x3=10,    
-    x4,    
-    x5,    
+enum string
+{
+    x1,
+    x2,
+    x3 = 10,
+    x4,
+    x5,
 } x;
 
 int main()
@@ -277,7 +278,7 @@ int main()
     // inputPassword();
     // cpuPrefetch();
     // learnUnion();
-    printf("%d\n",x);
+    printf("%d\n", x);
     return 0;
 }
 /*
