@@ -279,7 +279,7 @@ int main()
     // cpuPrefetch();
     // learnUnion();
     int a(5), b(3);
-    printf("%d,%d,%d,%d\n", x, a, b, a || b);
+    printf("%d,%d,%d,%c,%c,%d\n", x, a, b, '\72', 72, ':');
     return 0;
 }
 /*
