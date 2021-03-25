@@ -23,6 +23,41 @@ void create(node *&head, int nb)
     head = pdata[nb - 1];
 }
 
+void reverse(node *&head)
+{
+    node *pre = NULL, *curr = head, *post = head->next;
+    while (curr != NULL)
+    {
+        curr->next = pre;
+        pre = curr;
+        curr = post;
+        if (post != NULL)
+            post = post->next;
+    }
+    head = pre;
+}
+
+void lastkNode(node *head, int k)
+{
+    if (head != NULL && k != 0)
+    {
+        node *first = head, *last = head;
+        for (int i = 0; i < k - 1; ++i)
+        {
+            if (first->next != NULL)
+            {
+                first = first->next;
+            }
+        }
+        while (first->next != NULL)
+        {
+            first = first->next;
+            last = last->next;
+        }
+        printf("%d\n", last->val);
+    }
+}
+
 void print(node *head)
 {
     for (node *p = head; p != NULL; p = p->next)
@@ -40,7 +75,10 @@ int main()
 {
     node *head;
     create(head, 15);
-    print(head);
+    // print(head);
+    // reverse(head);
+    // print(head);
+    lastkNode(head, 6);
 }
 /*
 cd cpp;g++ -g link.cpp -o link;./link;cd ..
