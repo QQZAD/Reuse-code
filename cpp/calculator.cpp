@@ -56,7 +56,7 @@ int priority(char c)
 int infixToPostfix(string infix, string &postfix, int len)
 {
     stack<char> symbol;
-    int p = 0;
+    int p = 0, topChar;
     for (int i = 0; i < len; i++)
     {
         if (infix[i] >= '0' && infix[i] <= '9')
@@ -73,44 +73,41 @@ int infixToPostfix(string infix, string &postfix, int len)
         }
         else if (infix[i] == ')')
         {
-            while (symbol.top() != '(')
+            while (!symbol.empty())
             {
-                postfix[p++] = symbol.top();
-                postfix[p++] = deli;
+                topChar = symbol.top();
                 symbol.pop();
+                if (topChar == '(')
+                {
+                    break;
+                }
+                postfix[p++] = topChar;
+                postfix[p++] = deli;
             }
-            symbol.pop();
         }
         else
         {
-            if (symbol.empty())
-            {
-                symbol.push(infix[i]);
-            }
-            else
+            if (!symbol.empty())
             {
                 int curr = priority(infix[i]);
                 int top = priority(symbol.top());
-                if (curr > top)
-                {
-                    symbol.push(infix[i]);
-                }
-                else
+                if (curr <= top)
                 {
                     while (!symbol.empty())
                     {
-                        top = priority(symbol.top());
+                        topChar = symbol.top();
+                        top = priority(topChar);
                         if (curr > top)
                         {
                             break;
                         }
-                        postfix[p++] = symbol.top();
-                        postfix[p++] = deli;
                         symbol.pop();
+                        postfix[p++] = topChar;
+                        postfix[p++] = deli;
                     }
-                    symbol.push(infix[i]);
                 }
             }
+            symbol.push(infix[i]);
         }
     }
     while (!symbol.empty())
@@ -155,7 +152,7 @@ int solve(string s)
 
 int main()
 {
-    solve("2-3+4*45-8");
+    solve("2-3+4*4(5-8+7)*2");
     return 0;
 }
 /*
