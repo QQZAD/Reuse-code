@@ -20,19 +20,15 @@ a.从左往右遍历，遇到操作数直接入栈。
 b.遇到运算符，弹出栈顶的两个操作数，先弹出的在右边后弹出的在左边，计算后将结果入栈。
 c.遇到结束符，栈顶保存最终结果。
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+#include <string>
 #include <stack>
+using namespace std;
 
-#define MAX_LENGTH 200
-static char infix[MAX_LENGTH];
-static char postfix[MAX_LENGTH];
+#define MAX_SIZE 200
+char deli = ' ';
 
-static std::stack<char> symbol;
-static std::stack<double> number;
-
-double cal(double l, double r, char op)
+int cal(int l, int r, char op)
 {
     switch (op)
     {
@@ -40,16 +36,13 @@ double cal(double l, double r, char op)
         return l + r;
     case '-':
         return l - r;
-    case '*':
-        return l * r;
-    case '/':
-        return l / r;
     }
+    return l * r;
 }
 
-int getStackPriority(char c)
+int priority(char c)
 {
-    if (c == '*' || c == '/')
+    if (c == '*')
     {
         return 2;
     }
@@ -57,32 +50,22 @@ int getStackPriority(char c)
     {
         return 1;
     }
-    else if (c == '(')
-    {
-        return 0;
-    }
+    return 0;
 }
 
-void infixToPostfix(char *infix, int charNb)
+int infixToPostfix(string infix, string &postfix, int len)
 {
-    char *p = postfix;
-    for (int i = 0; i < charNb; i++)
+    stack<char> symbol;
+    int p = 0;
+    for (int i = 0; i < len; i++)
     {
-        if (infix[i] >= 48 && infix[i] <= 57)
+        if (infix[i] >= '0' && infix[i] <= '9')
         {
-            char *start = infix + i;
-            while ((infix[i] >= 48 && infix[i] <= 57) || infix[i] == '.')
+            postfix[p++] = infix[i];
+            if (i == len - 1 || (i + 1 < len && (infix[i + 1] < '0' || infix[i + 1] > '9')))
             {
-                i++;
+                postfix[p++] = deli;
             }
-            char *end = infix + i;
-            char temp = end[0];
-            end[0] = '\0';
-            memcpy(p, start, strlen(start));
-            p += strlen(start);
-            *(p++) = ',';
-            end[0] = temp;
-            i--;
         }
         else if (infix[i] == '(')
         {
@@ -92,37 +75,37 @@ void infixToPostfix(char *infix, int charNb)
         {
             while (symbol.top() != '(')
             {
-                *(p++) = symbol.top();
-                *(p++) = ',';
+                postfix[p++] = symbol.top();
+                postfix[p++] = deli;
                 symbol.pop();
             }
             symbol.pop();
         }
         else
         {
-            if (symbol.empty() == true)
+            if (symbol.empty())
             {
                 symbol.push(infix[i]);
             }
             else
             {
-                int curr = getStackPriority(infix[i]);
-                int top = getStackPriority(symbol.top());
+                int curr = priority(infix[i]);
+                int top = priority(symbol.top());
                 if (curr > top)
                 {
                     symbol.push(infix[i]);
                 }
                 else
                 {
-                    while (symbol.empty() == false)
+                    while (!symbol.empty())
                     {
-                        top = getStackPriority(symbol.top());
+                        top = priority(symbol.top());
                         if (curr > top)
                         {
                             break;
                         }
-                        *(p++) = symbol.top();
-                        *(p++) = ',';
+                        postfix[p++] = symbol.top();
+                        postfix[p++] = deli;
                         symbol.pop();
                     }
                     symbol.push(infix[i]);
@@ -130,64 +113,49 @@ void infixToPostfix(char *infix, int charNb)
             }
         }
     }
-    while (symbol.empty() == false)
+    while (!symbol.empty())
     {
-        *(p++) = symbol.top();
-        *(p++) = ',';
+        postfix[p++] = symbol.top();
+        postfix[p++] = deli;
         symbol.pop();
     }
-    p[0] = '\0';
+    return p;
 }
 
-void caculator()
+int solve(string s)
 {
-    double result = 0;
-    int charNb = 0;
-    char c;
-    printf("输入中缀表达式，按回车结束：\n");
-    while (1)
+    int temp = 0, len = s.size();
+    string postfix(MAX_SIZE, 0);
+    len = infixToPostfix(s, postfix, len);
+    printf("得到后缀表达式：\n%s\n", postfix.c_str());
+    stack<int> number;
+    for (int i = 0; i < len; i++)
     {
-        scanf("%c", &c);
-        if (c == '\n')
+        if (postfix[i] >= '0' && postfix[i] <= '9')
         {
-            infix[charNb] = '\0';
-            break;
-        }
-        infix[charNb++] = c;
-    }
-    infixToPostfix(infix, charNb);
-    printf("得到后缀表达式：\n%s\n", postfix);
-    charNb = strlen(postfix);
-    for (int i = 0; i < charNb; i++)
-    {
-        if (postfix[i] >= 48 && postfix[i] <= 57)
-        {
-            char *start = postfix + i;
-            while (postfix[i] != ',')
+            temp = 10 * temp + postfix[i] - '0';
+            if (i + 1 < len && postfix[i + 1] == deli)
             {
-                i++;
+                number.push(temp);
+                temp = 0;
             }
-            char *end = postfix + i;
-            end[0] = '\0';
-            number.push(atof(start));
-            end[0] = ',';
-            i--;
         }
-        else if (postfix[i] != ',')
+        else if (postfix[i] != deli)
         {
-            double r = number.top();
+            int r = number.top();
             number.pop();
-            double l = number.top();
+            int l = number.top();
             number.pop();
             number.push(cal(l, r, postfix[i]));
         }
     }
-    printf("计算结果：%lf\n", number.top());
+    printf("计算结果：%d\n", number.top());
+    return number.top();
 }
 
 int main()
 {
-    caculator();
+    solve("2-3+4*45-8");
     return 0;
 }
 /*
