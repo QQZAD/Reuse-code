@@ -86,6 +86,20 @@ void createCycle(node *head)
     p->next = q;
 }
 
+/*
+                   __.___   
+                  |     |
+&----->----------#--->--
+&表示单链表的头结点
+>表示单链表的方向
+#表示环的入口点
+.表示快慢指针相遇点
+设&到.的距离为x
+设#到.的距离为y
+设环的长度为L
+则&到#的距离为x-y=kL-y=(k-1)L+(L-y)
+*/
+
 void detectCycle(node *head)
 {
     node *slow = head, *fast = head;
