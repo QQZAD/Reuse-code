@@ -11,7 +11,7 @@
         (byte & 0x02 ? '1' : '0'), \
         (byte & 0x01 ? '1' : '0')
 
-void printBinary(int bytes, void *data)
+static void printBinary(int bytes, void *data)
 {
     /*
     *整数在内存中以二进制补码形式存储，方便计算
@@ -41,7 +41,7 @@ void printBinary(int bytes, void *data)
     printf("\n");
 }
 
-void dataType()
+static void dataType()
 {
     char c = 97;
     printf("c=%c\n", c);
@@ -110,7 +110,7 @@ void dataType()
     printBinary(sizeof(long double), (void *)&ld);
 }
 
-void binary()
+static void binary()
 {
     int hex = 0x20;
     printf("0x%x\n", hex);
@@ -122,7 +122,7 @@ void binary()
     printBinary(sizeof(int), (void *)&bin);
 }
 
-void bitsOperate()
+static void bitsOperate()
 {
     int i = 9;
     printBinary(sizeof(int), (void *)&i);
@@ -160,6 +160,6 @@ int main()
 }
 
 /*
-cd cpp;g++ -g binary.cpp -o binary;./binary;cd ..
+cd cpp;g++ -g -std=c++17 binary.cpp -o binary;./binary;cd ..
 cd cpp;rm -rf binary;cd ..
 */

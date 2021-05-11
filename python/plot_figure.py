@@ -6,7 +6,8 @@ import numpy as np
 import copy
 
 
-def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+def plot_line(x_data, y_data, save_path, x_label, y_label,
+              var_orient='vertical'):
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('plot_figure var_orient error!')
         exit(1)
@@ -24,7 +25,8 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
     # label = ['Copy 1024 packets at a time',
     #          'Copy 2048 packets at a time']
     label = ['Serial PCIe', 'Parallel PCIe', 'Hybrid PCIe']
-    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
+    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white',
+    # 'cyan', 'darksalmon', 'gold', 'crimson'
     # color = ['red']
     # color = ['red', 'green']
     color = ['red', 'green', 'black']
@@ -32,11 +34,13 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
     # linestyle = ['-']
     # linestyle = ['-', '--']
     linestyle = ['-', '--', '-.']
-    # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's', '+', '*', 'x', '^', 'v', '<', '>', '|'
+    # 线条标记 'o', 'd', 'D', 'h', 'H', '_', '8', 'p', ',', '.', 's',
+    #  '+', '*', 'x', '^', 'v', '<', '>', '|'
     # marker = ['o']
     # marker = ['v', '^']
     marker = ['v', '^', 'o']
-    if y_number != len(label) or y_number != len(color) or y_number != len(linestyle) or y_number != len(marker):
+    if y_number != len(label) or y_number != len(color) or \
+            y_number != len(linestyle) or y_number != len(marker):
         print('y_data的label、color、linestyle、marker没有被正确设置！')
         exit(1)
     # 设置字体和大小
@@ -60,13 +64,14 @@ def plot_line(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
-    if save_path != None:
+    if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
         print('已将图像保存为'+save_path)
     plt.show()
 
 
-def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+def plot_bar(x_data, y_data, save_path, x_label, y_label,
+             var_orient='vertical'):
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('plot_figure var_orient error!')
         exit(1)
@@ -79,11 +84,13 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
         exit(1)
     # 设置y_data的label、color、hatch
     label = ['label1', 'label2', 'label3']
-    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
+    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan',
+    #  'darksalmon', 'gold', 'crimson'
     color = ['green', 'red', 'blue']
     # 填充效果 '/', '|', '-', '+', 'x', 'o', 'O', '.', '*', ' '
     hatch = ['x', '.', '|']
-    if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
+    if y_number != len(label) or y_number != len(color) or \
+            y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
     # 设置字体和大小
@@ -103,21 +110,23 @@ def plot_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical')
     # plt.ylim([-5, 25])
     for _ in range(y_number):
         plt.bar(np.arange(x_number)+_*bar_width,
-                y_data[_], label=label[_], color=color[_], hatch=hatch[_], width=bar_width)
+                y_data[_], label=label[_], color=color[_], hatch=hatch[_],
+                width=bar_width)
     # 'x' 'y' 'both'
     plt.grid(axis='y')
     plt.legend(loc=1)
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
-    if save_path != None:
+    if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
         print('已将图像保存为'+save_path)
     print('若图像出现重叠现象，调小bar_width的值！')
     plt.show()
 
 
-def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='vertical'):
+def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label,
+                     var_orient='vertical'):
     print('在堆叠柱状图中序号小的y_data位于柱状图下层')
     if var_orient != 'vertical' and var_orient != 'horizon':
         print('plot_figure var_orient error!')
@@ -145,11 +154,13 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
                 y_data[i][j]/_y_data[y_number-1][j], decimal)
     # 设置y_data的label、color、hatch
     label = ['label1', 'label2', 'label3']
-    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white', 'cyan', 'darksalmon', 'gold', 'crimson'
+    # HTML颜色名 'red', 'green', 'blue', 'yellow', 'black', 'white',
+    # 'cyan', 'darksalmon', 'gold', 'crimson'
     color = ['green', 'red', 'darksalmon']
     # 填充效果 '/', '|', '-', '+', 'x', 'o', 'O', '.', '*', ' '
     hatch = [' ', ' ', ' ']
-    if y_number != len(label) or y_number != len(color) or y_number != len(hatch):
+    if y_number != len(label) or y_number != len(color) or \
+            y_number != len(hatch):
         print('y_data的label、color、hatch没有被正确设置！')
         exit(1)
     # 设置字体和大小
@@ -169,7 +180,8 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
     plt.ylim([0, 65])
     for _ in range(y_number-1, - 1, - 1):
         plt.bar(np.arange(x_number),
-                _y_data[_], label=label[_], color=color[_], hatch=hatch[_], width=bar_width)
+                _y_data[_], label=label[_], color=color[_], hatch=hatch[_],
+                width=bar_width)
     # 添加堆叠柱状图的百分比
     for i in range(y_number):
         for j in range(x_number):
@@ -181,7 +193,7 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
     fig = plt.gcf()
     # 设置图片的长和宽（英寸）
     fig.set_size_inches(9, 3.5)
-    if save_path != None:
+    if save_path is not None:
         plt.savefig(save_path, bbox_inches='tight')
         print('已将图像保存为'+save_path)
     print('若图像出现重叠现象，调小bar_width的值！')
@@ -189,6 +201,7 @@ def plot_stacked_bar(x_data, y_data, save_path, x_label, y_label, var_orient='ve
 
 
 def benchmark():
+    # cd python;rm -rf __pycache__;cd ..;rm -rf data1.eps data2.eps data3.eps
     x_data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
     y_data = [[3, 13, 5, 7, 9, 10, 2, 1, 0],
               [6, 3, 8, 4, 9, 14, 9, 2, 7],
@@ -197,8 +210,6 @@ def benchmark():
     plot_bar(x_data, y_data, 'data2.eps', 'xlabel', 'ylabel', 'horizon')
     plot_stacked_bar(x_data, y_data, 'data3.eps',
                      'xlabel', 'ylabel', 'horizon')
-
-    # cd python;rm -rf __pycache__;cd ..;rm -rf data1.eps data2.eps data3.eps
 
 
 if __name__ == '__main__':
@@ -240,4 +251,5 @@ if __name__ == '__main__':
     # plot_line(x_data, y_data, 'data5.eps', 'Number of flows',
     #           'Average latency of data copy (s)', 'horizon')
 
-    # cd python;rm -rf __pycache__;cd ..;rm -rf data.eps data.csv data1.eps data2.eps data3.eps data4.eps data5.eps
+    # cd python;rm -rf __pycache__;cd ..;rm -rf data.eps data.csv
+    # rm -rf data1.eps data2.eps data3.eps data4.eps data5.eps

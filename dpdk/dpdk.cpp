@@ -100,7 +100,7 @@ static inline int port_init(uint16_t port, struct rte_mempool *mbuf_pool)
     return 0;
 }
 
-static void printNetInfo(struct ether_header *eth)
+static void print_net_info(struct ether_header *eth)
 {
     uint16_t ether_type = ntohs(eth->ether_type);
     if (ether_type == ETHERTYPE_IP)
@@ -195,7 +195,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
                         batch_len += pac_len[ipv4_pac_id];
                         pac_bytes[ipv4_pac_id] = (uint8_t *)malloc(sizeof(uint8_t) * pac_len[ipv4_pac_id]);
                         memcpy(pac_bytes[ipv4_pac_id], (uint8_t *)eth_hdr, pac_len[ipv4_pac_id]);
-                        printNetInfo(eth_hdr);
+                        print_net_info(eth_hdr);
                         ipv4_nb_rx++;
                     }
                 }
@@ -226,7 +226,7 @@ static int lcore_main(__attribute__((unused)) void *arg)
     return 0;
 }
 
-void *launchDpdk(void *par)
+void *launch_dpdk(void *par)
 {
     SPar *spar = (SPar *)par;
     int argc = spar->argc;
@@ -268,14 +268,14 @@ void *launchDpdk(void *par)
 int main(int argc, char *argv[])
 {
     SPar spar(argc, argv);
-    launchDpdk((void *)&spar);
+    launch_dpdk((void *)&spar);
     return 0;
 }
 #endif
 /*
 [1]确保DPDK正确安装并配置
 注意：对于虚拟机中的网卡，在编译安装之前
-gedit ~/dpdk-stable-19.11.3/kernel/linux/igb_uio/igb_uio.c
+gedit ~/dpdk-stable-19.11.8/kernel/linux/igb_uio/igb_uio.c
 将pci_intx_mask_supported(udev->pdev)改为pci_intx_mask_supported(udev->pdev)||true
 
 [2]根据硬件配置和需求分配巨页内存
@@ -286,16 +286,16 @@ sudo gedit /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages
 [3]加载PDDK支持的驱动模块
 lsmod
 sudo modprobe uio
-sudo insmod ~/dpdk-stable-19.11.3/build/kernel/linux/igb_uio/igb_uio.ko
+sudo insmod ~/dpdk-stable-19.11.8/build/kernel/linux/igb_uio/igb_uio.ko
 
 [4]卸载选定的网卡并将该网卡绑定至igb_uio驱动（选择一个网卡就可以）
-python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --status
+python3 ~/dpdk-stable-19.11.8/usertools/dpdk-devbind.py --status
 卸载网卡ens38(02:06.0)
 sudo ifconfig ens38 down
 将网卡ens38(02:06.0)绑定至DPDK驱动igb_uio
-sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=igb_uio 02:06.0
+sudo python3 ~/dpdk-stable-19.11.8/usertools/dpdk-devbind.py --bind=igb_uio 02:06.0
 将网卡ens38(02:06.0)绑定至内核驱动e1000
-sudo python3 ~/dpdk-stable-19.11.3/usertools/dpdk-devbind.py --bind=e1000 02:06.0
+sudo python3 ~/dpdk-stable-19.11.8/usertools/dpdk-devbind.py --bind=e1000 02:06.0
 
 [5]编译并运行可执行文件dpdk
 cd dpdk;rm -rf dpdk;g++ -march=native -mno-avx512f -g dpdk.cpp -o dpdk -I /usr/local/include -lrte_eal -lrte_ethdev -lrte_mbuf -lrte_mempool;sudo ./dpdk -l 0-1;cd ..

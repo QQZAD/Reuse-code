@@ -35,7 +35,7 @@ timespec start, end;
 long long a[NB];
 long long *b = (long long *)malloc(sizeof(long long) * NB);
 
-void generate(long long *array, long long nb)
+static void generate(long long *array, long long nb)
 {
     for (long long i = 0; i < nb; i++)
     {
@@ -43,7 +43,7 @@ void generate(long long *array, long long nb)
     }
 }
 
-void save(char *filename, long long *array, long long nb)
+static void save(char *filename, long long *array, long long nb)
 {
     remove(filename);
     FILE *fp = fopen(filename, "w");
@@ -63,7 +63,7 @@ void save(char *filename, long long *array, long long nb)
 在原数组实现排序
 O(1)
 */
-void bubbleSort(long long *array, long long nb, sortType st = ascend)
+static void bubbleSort(long long *array, long long nb, sortType st = ascend)
 {
     for (long long i = 0; i < nb; i++)
     {
@@ -97,7 +97,7 @@ void bubbleSort(long long *array, long long nb, sortType st = ascend)
 在原数组实现排序
 O(1)
 */
-void selectionSort(long long *array, long long nb, sortType st = ascend)
+static void selectionSort(long long *array, long long nb, sortType st = ascend)
 {
     for (int i = 0; i < nb - 1; i++)
     {
@@ -132,7 +132,7 @@ void selectionSort(long long *array, long long nb, sortType st = ascend)
 空间复杂度：
 O(logn)-O(n)
 */
-void quickSort(long long *array, long long start, long long end, sortType st = ascend)
+static void quickSort(long long *array, long long start, long long end, sortType st = ascend)
 {
     if (start < end)
     {
@@ -174,7 +174,7 @@ void quickSort(long long *array, long long start, long long end, sortType st = a
     }
 }
 
-void bubble()
+static void bubble()
 {
     memcpy(b, a, sizeof(long long) * NB);
     printf("bubbleSort-start\n");
@@ -185,7 +185,7 @@ void bubble()
     save((char *)"bubbleSort.txt", b, NB);
 }
 
-void selection()
+static void selection()
 {
     memcpy(b, a, sizeof(long long) * NB);
     printf("selectionSort-start\n");
@@ -196,7 +196,7 @@ void selection()
     save((char *)"selectionSort.txt", b, NB);
 }
 
-void quick()
+static void quick()
 {
     memcpy(b, a, sizeof(long long) * NB);
     printf("quickSort-start\n");
@@ -207,12 +207,12 @@ void quick()
     save((char *)"quickSort.txt", b, NB);
 }
 
-bool cmp(int a, int b)
+static bool cmp(int a, int b)
 {
     return a < b;
 }
 
-void lambda()
+static void lambda()
 {
     std::vector<long long> vec(NB);
     for (int i = 0; i < vec.size(); i++)
@@ -252,6 +252,6 @@ int main()
     return 0;
 }
 /*
-cd cpp;g++ -g sort.cpp -o sort;./sort;cd ..
+cd cpp;g++ -g -std=c++17 sort.cpp -o sort;./sort;cd ..
 cd cpp;rm -rf sort bubbleSort.txt selectionSort.txt quickSort.txt;cd ..
 */

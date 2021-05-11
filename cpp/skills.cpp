@@ -156,8 +156,8 @@ void car()
         {
             printf(" ");
         }
-        printf("🚙");
-        // printf("🚒");
+        // printf("🚙");
+        printf("🚒");
         // printf("🏍");
         for (int j = 0; j <= i; j++)
         {
@@ -274,15 +274,15 @@ int main()
     // backWorkDir();
     // pause_continue();
     // x86_64();
-    // car();
+    car();
     // inputPassword();
     // cpuPrefetch();
     // learnUnion();
-    int a(5), b(3);
-    printf("%d,%d,%d,%c,%c,%d\n", x, a, b, '\72', 72, ':');
+    // int a(5), b(3);
+    // printf("%d,%d,%d,%c,%c,%d\n", x, a, b, '\72', 72, ':');
     return 0;
 }
 /*
-cd cpp;g++ -c _skills/skills.cpp -o skills.o;g++ -g skills.cpp -o skills skills.o;./skills;cd ..
+cd cpp;g++ -c -std=c++17 _skills/skills.cpp -o skills.o;g++ -g -std=c++11 skills.cpp -o skills skills.o;./skills;cd ..
 cd cpp;rm -rf skills.o skills skills.log;cd ..
 */

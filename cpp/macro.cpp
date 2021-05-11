@@ -12,13 +12,13 @@ typedef void *(*pfunc)(void *);
 #define __PRINTERROR(format, ...) \
     fprintf(stderr, format, __VA_ARGS__)
 
-void *pint(void *arg)
+static void *pint(void *arg)
 {
     printf("%d\n", *(int *)arg);
     return NULL;
 }
 
-void *pfloat(void *arg)
+static void *pfloat(void *arg)
 {
     printf("%f\n", *(float *)arg);
     return NULL;
@@ -37,9 +37,9 @@ int main()
     PFUNC(pf);
     pf = pfloat;
     pf((void *)&float_b);
-    __PRINTERROR("%s%d", "返回错误信息", -1);
+    __PRINTERROR("%s%d\n", "返回错误信息", -1);
 }
 /*
-cd cpp;g++ -g macro.cpp -o macro;./macro;cd ..
+cd cpp;g++ -g -std=c++17 macro.cpp -o macro;./macro;cd ..
 cd cpp;rm -rf macro;cd ..
 */

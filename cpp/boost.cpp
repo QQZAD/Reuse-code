@@ -1,3 +1,4 @@
+#include <boost/version.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
@@ -7,29 +8,29 @@
 
 typedef boost::mutex::scoped_lock lock;
 
-class bounded_buffer : private boost::noncopyable
+class BoundedBuffer : private boost::noncopyable
 {
 private:
     int begin, end, buffered;
-    std::vector<int> circular_buf;
-    boost::condition buffer_not_full, buffer_not_empty;
+    std::vector<int> circularBuf;
+    boost::condition bufferNotFull, bufferNotEmpty;
     boost::mutex monitor;
 
 public:
-    bounded_buffer(int n) : begin(0), end(0), buffered(0), circular_buf(n) {}
+    BoundedBuffer(int n) : begin(0), end(0), buffered(0), circularBuf(n) {}
 
     void send(int m)
     {
         lock lk(monitor);
-        while (buffered == circular_buf.size())
+        while (buffered == circularBuf.size())
         {
-            buffer_not_full.wait(lk);
+            bufferNotFull.wait(lk);
         }
 
-        circular_buf[end] = m;
-        end = (end + 1) % circular_buf.size();
+        circularBuf[end] = m;
+        end = (end + 1) % circularBuf.size();
         ++buffered;
-        buffer_not_empty.notify_one();
+        bufferNotEmpty.notify_one();
     }
 
     int receive()
@@ -37,19 +38,19 @@ public:
         lock lk(monitor);
         while (buffered == 0)
         {
-            buffer_not_empty.wait(lk);
+            bufferNotEmpty.wait(lk);
         }
 
-        int i = circular_buf[begin];
-        begin = (begin + 1) % circular_buf.size();
+        int i = circularBuf[begin];
+        begin = (begin + 1) % circularBuf.size();
         --buffered;
-        buffer_not_full.notify_one();
+        bufferNotFull.notify_one();
         return i;
     }
 };
-bounded_buffer buf(2);
+BoundedBuffer buf(2);
 
-void sender()
+static void sender()
 {
     int n = 0;
     while (n < 100)
@@ -61,7 +62,7 @@ void sender()
     buf.send(-1);
 }
 
-void receiver()
+static void receiver()
 {
     int n;
     do
@@ -73,6 +74,8 @@ void receiver()
 
 int main()
 {
+    std::cout << "boost版本号" << std::endl
+              << BOOST_LIB_VERSION << std::endl;
     boost::thread thrd1(&sender);
     boost::thread thrd2(&receiver);
     thrd1.join();
@@ -80,6 +83,6 @@ int main()
     return 0;
 }
 /*
-cd cpp;g++ -g boost.cpp -o boost -lpthread -lboost_thread;./boost;cd ..
+cd cpp;g++ -g -std=c++17 boost.cpp -o boost -lpthread -lboost_thread;./boost;cd ..
 cd cpp;rm -rf boost;cd ..
 */

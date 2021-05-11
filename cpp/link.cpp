@@ -11,7 +11,7 @@ struct node
     }
 };
 
-void create(node *&head, int nb)
+static void create(node *&head, int nb)
 {
     node **pdata = new node *[nb];
     for (int i = 0; i < nb; ++i)
@@ -23,7 +23,7 @@ void create(node *&head, int nb)
     head = pdata[nb - 1];
 }
 
-void reverse(node *&head)
+static void reverse(node *&head)
 {
     node *pre = NULL, *curr = head, *post = head->next;
     while (curr != NULL)
@@ -37,7 +37,7 @@ void reverse(node *&head)
     head = pre;
 }
 
-void lastkNode(node *head, int k)
+static void lastkNode(node *head, int k)
 {
     if (head != NULL && k != 0)
     {
@@ -58,7 +58,7 @@ void lastkNode(node *head, int k)
     }
 }
 
-void print(node *head)
+static void print(node *head)
 {
     for (node *p = head; p != NULL; p = p->next)
     {
@@ -71,7 +71,7 @@ void print(node *head)
     printf("\n");
 }
 
-void createCycle(node *head)
+static void createCycle(node *head)
 {
     int i = 0;
     node *p, *q = NULL;
@@ -100,7 +100,7 @@ void createCycle(node *head)
 则&到#的距离为x-y=kL-y=(k-1)L+(L-y)
 */
 
-void detectCycle(node *head)
+static void detectCycle(node *head)
 {
     node *slow = head, *fast = head;
     while (fast && fast->next)
@@ -133,6 +133,6 @@ int main()
     detectCycle(head);
 }
 /*
-cd cpp;g++ -g link.cpp -o link;./link;cd ..
+cd cpp;g++ -g -std=c++17 link.cpp -o link;./link;cd ..
 cd cpp;rm -rf link;cd ..
 */

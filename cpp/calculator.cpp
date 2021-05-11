@@ -28,7 +28,7 @@ using namespace std;
 #define MAX_SIZE 200
 char deli = ' ';
 
-int cal(int l, int r, char op)
+static int cal(int l, int r, char op)
 {
     switch (op)
     {
@@ -40,7 +40,7 @@ int cal(int l, int r, char op)
     return l * r;
 }
 
-int priority(char c)
+static int priority(char c)
 {
     if (c == '*')
     {
@@ -53,7 +53,7 @@ int priority(char c)
     return 0;
 }
 
-int infixToPostfix(string infix, string &postfix, int len)
+static int infixToPostfix(string infix, string &postfix, int len)
 {
     stack<char> symbol;
     int p = 0, topChar;
@@ -119,7 +119,7 @@ int infixToPostfix(string infix, string &postfix, int len)
     return p;
 }
 
-int solve(string s)
+static int solve(string s)
 {
     int temp = 0, len = s.size();
     string postfix(MAX_SIZE, 0);
@@ -156,6 +156,6 @@ int main()
     return 0;
 }
 /*
-cd cpp;g++ -g calculator.cpp -o calculator;./calculator;cd ..
+cd cpp;g++ -g -std=c++17 calculator.cpp -o calculator;./calculator;cd ..
 cd cpp;rm -rf calculator;cd ..
 */

@@ -1,9 +1,7 @@
 #!/bin/bash
 # 非维护人员请不要运行此脚本
-for file in `ls $1`
-do
-    if [ "${file#*.}" != "sh" ] && [ "${file#*.}" != "md" ] && [ "${file#*.}" != "cpp" ] && [ "${file#*.}" != "cuda" ] && [ "${file#*.}" != "dpdk" ] && [ "${file#*.}" != "python" ] && [ "${file#*.}" != "ptm_data" ]
-    then
+for file in $(ls $1); do
+    if [ "${file#*.}" != "sh" ] && [ "${file#*.}" != "md" ] && [ "${file#*.}" != "cpp" ] && [ "${file#*.}" != "cuda" ] && [ "${file#*.}" != "dpdk" ] && [ "${file#*.}" != "python" ] && [ "${file#*.}" != "ptm_data" ]; then
         echo "发现未跟踪的文件$file，已终止！"
         exit
     fi
